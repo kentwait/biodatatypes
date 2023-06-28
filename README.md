@@ -1,0 +1,2 @@
+# biodatatypes
+Biological sequence datatypes
