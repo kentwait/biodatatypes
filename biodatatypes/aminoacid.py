@@ -1,4 +1,4 @@
-from typing import List
+from typing import Any, Union, List
 from collections.abc import Sequence
 from enum import Enum
 
@@ -645,10 +645,17 @@ class AminoAcid(Enum):
 
 
 class AminoAcidSequence(Sequence):
-    def __init__(self, sequence: Sequence[AminoAcid]):
-        self._sequence = sequence
-        self._is_standard = None
-        self._is_degenerate = None
+    def __init__(self, 
+            sequence: Sequence[AminoAcid],
+            is_standard: bool = None, 
+            is_degenerate: bool = None, 
+            is_gapped: bool = None, 
+            is_masked: bool = None):
+        self._sequence = list(sequence)
+        self._is_standard = is_standard
+        self._is_degenerate = is_degenerate
+        self._is_gapped = is_gapped
+        self._is_masked = is_masked
         
     def __getitem__(self, index: int) -> AminoAcid:
         return self.sequence[index]
@@ -673,6 +680,18 @@ class AminoAcidSequence(Sequence):
         if self._is_degenerate is None:
             self._is_degenerate = any([s.is_degenerate() for s in self.sequence])
         return self._is_degenerate
+    
+    @property
+    def is_gapped(self) -> bool:
+        if self._is_gapped is None:
+            self._is_gapped = any([s.is_gap() for s in self.sequence])
+        return self._is_gapped
+    
+    @property
+    def is_masked(self) -> bool:
+        if self._is_masked is None:
+            self._is_masked = any([s.is_masked() for s in self.sequence])
+        return self._is_masked
     
     @property
     def sequence(self) -> Sequence[AminoAcid]:
@@ -737,7 +756,282 @@ class AminoAcidSequence(Sequence):
     def to_onehot(self) -> Sequence[Sequence[int]]:
         return [s.to_onehot() for s in self.sequence]
 
+    def startswith(self, other: Union[str, Sequence[AminoAcid], 'AminoAcidSequence']) -> bool:
+        """Return True if the sequence starts with the given sequence.
+        
+        Parameters
+        ----------
+        other : Union[str, Sequence[AminoAcid], AminoAcidSequence]
+            The sequence to check.
+            
+        Returns
+        -------
+        bool
+            True if the sequence starts with the given sequence.
+            
+        Examples
+        --------
+        >>> seq = AminoAcidSequence.from_str('ARNDCEQGHILKMFPSTWYV')
+        >>> seq.startswith('ARN')
+        True
+        >>> seq.startswith('A')
+        True
+        >>> seq.startswith('ARNDCEQGHILKMFPSTWYVX')
+        False
+        >>> seq.startswith('-')
+        False
+        """
+        if isinstance(other, str):
+            other = AminoAcidSequence.from_str(other)
+        return self.sequence[:len(other)] == other.sequence
 
+    def endswith(self, other: Union[str, Sequence[AminoAcid], 'AminoAcidSequence']) -> bool:
+        """Return True if the sequence ends with the given sequence.
+        
+        Parameters
+        ----------
+        other : Union[str, Sequence[AminoAcid], AminoAcidSequence]
+            The sequence to check.
+            
+        Returns
+        -------
+        bool
+            True if the sequence ends with the given sequence.
+            
+        Examples
+        --------
+        >>> seq = AminoAcidSequence.from_str('ARNDCEQGHILKMFPSTWYV')
+        >>> seq.endswith('V')
+        True
+        >>> seq.endswith('WYV')
+        True
+        >>> seq.endswith('ARNDC--EQGHILKMFPSTWYV')
+        False
+        >>> seq.endswith('-')
+        False
+        """
+        if isinstance(other, str):
+            other = AminoAcidSequence.from_str(other)
+        return self.sequence[-len(other):] == other.sequence
+
+    def find(self, seq: Union[str, Sequence[AminoAcid], 'AminoAcidSequence']) -> int:
+        """Return the index of the first occurrence of the given sequence.
+        
+        Parameters
+        ----------
+        seq : Union[str, Sequence[AminoAcid], AminoAcidSequence]
+            The sequence to find.
+            
+        Returns
+        -------
+        int
+            The index of the first occurrence of the given sequence.
+            
+        Examples
+        --------
+        >>> seq = AminoAcidSequence.from_str('ARNDCEQGHILKMFPSTWYV')
+        >>> seq.find('ARN')
+        0
+        >>> seq.find('RND')
+        1
+        >>> seq.find('V')
+        19
+        >>> seq.find('X')
+        -1
+        """
+        if len(seq) == 0:
+            return 0
+        elif len(seq) > len(self):
+            return -1
+        if isinstance(seq, AminoAcidSequence):
+            seq = str(seq)
+        elif isinstance(seq, Sequence) and isinstance(seq[0], AminoAcid):
+            seq = ''.join([str(s) for s in seq])
+        return str(self).find(seq)
+
+    def rfind(self, seq: Union[str, Sequence[AminoAcid], 'AminoAcidSequence']) -> int:
+        """Return the index of the last occurrence of the given sequence.
+        
+        Parameters
+        ----------
+        seq : Union[str, Sequence[AminoAcid], AminoAcidSequence]
+            The sequence to find.
+            
+        Returns
+        -------
+        int
+            The index of the last occurrence of the given sequence.
+            
+        Examples
+        --------
+        >>> seq = AminoAcidSequence.from_str('ARNDCEQGHILKMFPSTWYV')
+        >>> seq.rfind('ARN')
+        0
+        >>> seq.rfind('RND')
+        1
+        >>> seq.rfind('V')
+        19
+        >>> seq.rfind('X')
+        -1
+        """
+        if len(seq) == 0:
+            return 0
+        elif len(seq) > len(self):
+            return -1
+        if isinstance(seq, AminoAcidSequence):
+            seq = str(seq)
+        elif isinstance(seq, Sequence) and isinstance(seq[0], AminoAcid):
+            seq = ''.join([str(s) for s in seq])
+        return str(self).rfind(seq)
+    
+    def count(self, seq: Union[str, Sequence[AminoAcid], 'AminoAcidSequence']) -> int:
+        """Return the number of occurrences of the given sequence.
+        
+        Parameters
+        ----------
+        seq : Union[str, Sequence[AminoAcid], AminoAcidSequence]
+            The sequence to count.
+            
+        Returns
+        -------
+        int
+            The number of occurrences of the given sequence.
+            
+        Examples
+        --------
+        >>> seq = AminoAcidSequence.from_str('ARNDCEQGHILKMFPSTWYV')
+        >>> seq.count('ARN')
+        1
+        >>> seq.count('R')
+        1
+        >>> seq.count('V')
+        1
+        >>> seq.count('X')
+        0
+        """
+        if len(seq) == 0:
+            return 0
+        elif len(seq) > len(self):
+            return 0
+        if isinstance(seq, AminoAcidSequence):
+            seq = str(seq)
+        elif isinstance(seq, Sequence) and isinstance(seq[0], AminoAcid):
+            seq = ''.join([str(s) for s in seq])
+        return str(self).count(seq)
+    
+    def mask(self, positions: Union[int, Sequence[int]]) -> 'AminoAcidSequence':
+        """Return a new sequence with the given positions masked.
+        
+        Parameters
+        ----------
+        positions : Union[int, Sequence[int]]
+            The positions to mask.
+            
+        Returns
+        -------
+        AminoAcidSequence
+            A new sequence with the given positions masked.
+            
+        Examples
+        --------
+        >>> seq = AminoAcidSequence.from_str('ARNDCEQGHILKMFPSTWYV')
+        >>> seq.mask(0)
+        #RNDCEQGHILKMFPSTWYV
+        >>> seq.mask([0, 1, -1])
+        ##NDCEQGHILKMFPSTWY#
+        """
+        if isinstance(positions, int):
+            positions = [positions]
+        sequence = list(self._sequence)
+        for i in positions:
+            sequence[i] = AminoAcid['Mask']
+        return AminoAcidSequence(sequence, is_masked=(len(positions) > 0))
+    
+    def masked_positions(self) -> List[int]:
+        """Return the positions that are masked.
+        
+        Returns
+        -------
+        List[int]
+            The positions that are masked.
+            
+        Examples
+        --------
+        >>> seq = AminoAcidSequence.from_str('ARNDCEQGHILKMFPSTWYV')
+        >>> seq.masked_positions()
+        []
+        >>> seq.mask(0).masked_positions()
+        [0]
+        >>> seq.mask([0, 1, -1]).masked_positions()
+        [0, 1, 19]
+        """
+        masked_pos = [i for i, n in enumerate(self._sequence) if n.name == 'Mask']
+        if self._is_masked:
+            self._is_masked = len(masked_pos) > 0
+        return masked_pos
+    
+    def count_masked(self) -> int:
+        """Return the number of masked positions.
+        
+        Returns
+        -------
+        int
+            The number of masked positions.
+            
+        Examples
+        --------
+        >>> seq = AminoAcidSequence.from_str('ARNDCEQGHILKMFPSTWYV')
+        >>> seq.count_masked()
+        0
+        >>> seq.mask(0).count_masked()
+        1
+        >>> seq.mask([0, 1, -1]).count_masked()
+        3
+        """
+        return len(self.masked_positions())
+    
+    def gapped_positions(self) -> List[int]:
+        """Return the positions that are gapped.
+        
+        Returns
+        -------
+        List[int]
+            The positions that are gapped.
+            
+        Examples
+        --------
+        >>> seq = AminoAcidSequence.from_str('ARNDCEQGHILKMFPSTWYV')
+        >>> seq.gapped_positions()
+        []
+        >>> gapped_seq = AminoAcidSequence.from_str('AR-NDCEQGHILKMFPST-W-YV')
+        >>> gapped_seq.gapped_positions()
+        [2, 18, 20]
+        """
+        gapped_pos = [i for i, n in enumerate(self._sequence) if n.name == 'Gap']
+        if self._is_gapped is None:
+            self._is_gapped = len(gapped_pos) > 0
+        return gapped_pos
+    
+    def count_gaps(self) -> int:
+        """Return the number of gapped positions.
+        
+        Returns
+        -------
+        int
+            The number of gapped positions.
+            
+        Examples
+        --------
+        >>> seq = AminoAcidSequence.from_str('ARNDCEQGHILKMFPSTWYV')
+        >>> seq.count_gaps()
+        0
+        >>> gapped_seq = AminoAcidSequence.from_str('AR-NDCEQGHILKMFPST-W-YV')
+        >>> gapped_seq.count_gaps()
+        3
+        """
+        return len(self.gapped_positions())
+
+    
 # Constants
 
 # Naming
