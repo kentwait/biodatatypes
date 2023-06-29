@@ -2,6 +2,8 @@ from typing import Union, List
 from collections.abc import Sequence
 from enum import Enum
 
+from biodatatypes.sequence import SeqMixin, MaskMixin, GapMixin
+
 
 class Nucleotide(Enum):
     A = 1
@@ -441,7 +443,9 @@ class Nucleotide(Enum):
         return self == Nucleotide.G or self == Nucleotide.T or self == Nucleotide.K
 
 
-class NucleotideSequence(Sequence):
+class NucleotideSequence(GapMixin, MaskMixin, SeqMixin, Sequence):
+    unit = Nucleotide
+    
     def __init__(self, 
             sequence: Sequence[Nucleotide], 
             is_standard: bool = None, 
@@ -454,46 +458,6 @@ class NucleotideSequence(Sequence):
         self._is_gapped = is_gapped
         self._is_masked = is_masked
         
-    def __getitem__(self, index: int) -> Nucleotide:
-        return self.sequence[index]
-    
-    def __len__(self) -> int:
-        return len(self.sequence)
-    
-    def __str__(self) -> str:
-        return ''.join(list(map(str, self.sequence)))
-    
-    def __repr__(self) -> str:
-        return self.__str__()
-
-    @property
-    def is_standard(self) -> bool:
-        if self._is_standard is None:
-            self._is_standard = all([s.is_standard() or s.is_gap() for s in self.sequence])
-        return self._is_standard
-    
-    @property
-    def is_degenerate(self) -> bool:
-        if self._is_degenerate is None:
-            self._is_degenerate = any([s.is_degenerate() for s in self.sequence])
-        return self._is_degenerate
-    
-    @property
-    def is_gapped(self) -> bool:
-        if self._is_gapped is None:
-            self._is_gapped = any([s.is_gap() for s in self.sequence])
-        return self._is_gapped
-    
-    @property
-    def is_masked(self) -> bool:
-        if self._is_masked is None:
-            self._is_masked = any([s.is_masked() for s in self.sequence])
-        return self._is_masked
-    
-    @property
-    def sequence(self) -> Sequence[Nucleotide]:
-        return self._sequence
-    
     @classmethod
     def from_str(cls, sequence: str) -> 'NucleotideSequence':
         """Create an NucleotideSequence from a string of nucleotide tokens.
@@ -550,17 +514,17 @@ class NucleotideSequence(Sequence):
         >>> gapped_seq.to_str()
         'ATG-A-CCGTATGAA---TGA'
         """
-        return str(self)
+        return SeqMixin.to_str(self)
         
     def to_onehot(self) -> Sequence[Sequence[int]]:
-        return [s.to_onehot() for s in self.sequence]
+        return SeqMixin.to_onehot(self)
     
-    def startswith(self, nucl: Union[str, Sequence[Nucleotide], 'NucleotideSequence']) -> bool:
+    def startswith(self, seq: Union[str, Sequence[Nucleotide], 'NucleotideSequence']) -> bool:
         """Return True if the sequence starts with the given nucleotide or sequence.
         
         Parameters
         ----------
-        nucl : Union[str, Sequence[Nucleotide]]
+        seq : Union[str, Sequence[Nucleotide]]
             A nucleotide or sequence of nucleotides.
         
         Returns
@@ -580,16 +544,16 @@ class NucleotideSequence(Sequence):
         >>> seq.startswith('A--')
         False
         """
-        if isinstance(nucl, str):
-            nucl = NucleotideSequence.from_str(nucl)
-        return self.sequence[:len(nucl)] == nucl.sequence
+        if isinstance(seq, str):
+            seq = NucleotideSequence.from_str(seq)
+        return SeqMixin.startswith(self, seq)
 
-    def endswith(self, nucl: Union[str, Sequence[Nucleotide], 'NucleotideSequence']) -> bool:
+    def endswith(self, seq: Union[str, Sequence[Nucleotide], 'NucleotideSequence']) -> bool:
         """Return True if the sequence ends with the given nucleotide or sequence.
         
         Parameters
         ----------
-        nucl : Union[str, Sequence[Nucleotide]]
+        seq : Union[str, Sequence[Nucleotide]]
             A nucleotide or sequence of nucleotides.
         
         Returns
@@ -609,9 +573,9 @@ class NucleotideSequence(Sequence):
         >>> seq.endswith('A--')
         False
         """
-        if isinstance(nucl, str):
-            nucl = NucleotideSequence.from_str(nucl)
-        return self.sequence[-len(nucl):] == nucl.sequence
+        if isinstance(seq, str):
+            seq = NucleotideSequence.from_str(seq)
+        return SeqMixin.endswith(self, seq)
 
     def find(self, seq: Union[str, Sequence[Nucleotide], 'NucleotideSequence']) -> int:
         """Return the index of the first occurrence of the given nucleotide or sequence.
@@ -640,22 +604,20 @@ class NucleotideSequence(Sequence):
         >>> seq.find('A--')
         -1
         """
-        if len(seq) == 0:
-            return 0
-        elif len(seq) > len(self):
-            return -1
-        if isinstance(seq, NucleotideSequence):
+        if isinstance(seq, str):
+            pass
+        elif isinstance(seq, NucleotideSequence):
             seq = str(seq)
         elif isinstance(seq, Sequence) and isinstance(seq[0], Nucleotide):
             seq = ''.join([str(n) for n in seq])
-        return str(self).find(seq)
+        return SeqMixin.find(self, seq)
 
-    def rfind(self, nucl: Union[str, Sequence[Nucleotide], 'NucleotideSequence']) -> int:
+    def rfind(self, seq: Union[str, Sequence[Nucleotide], 'NucleotideSequence']) -> int:
         """Return the index of the last occurrence of the given nucleotide or sequence.
         
         Parameters
         ----------
-        nucl : Union[str, Sequence[Nucleotide]]
+        seq : Union[str, Sequence[Nucleotide]]
             A nucleotide or sequence of nucleotides.
         
         Returns
@@ -677,17 +639,15 @@ class NucleotideSequence(Sequence):
         >>> seq.rfind('A--')
         -1
         """
-        if len(nucl) == 0:
-            return len(self)
-        elif len(nucl) > len(self):
-            return -1
-        if isinstance(nucl, NucleotideSequence):
-            nucl = str(nucl)
-        elif isinstance(nucl, Sequence) and isinstance(nucl[0], Nucleotide):
-            nucl = ''.join([str(n) for n in nucl])
-        return str(self).rfind(nucl)
+        if isinstance(seq, str):
+            pass
+        elif isinstance(seq, NucleotideSequence):
+            seq = str(seq)
+        elif isinstance(seq, Sequence) and isinstance(seq[0], Nucleotide):
+            seq = ''.join([str(n) for n in seq])
+        return SeqMixin.rfind(self, seq)
 
-    def count(self, nucl: Union[str, Sequence[Nucleotide], 'NucleotideSequence']) -> int:
+    def count(self, seq: Union[str, Sequence[Nucleotide], 'NucleotideSequence']) -> int:
         """Return the number of occurrences of the given nucleotide or sequence.
         
         Parameters
@@ -714,15 +674,13 @@ class NucleotideSequence(Sequence):
         >>> seq.count('A--')
         0
         """
-        if len(nucl) == 0:
-            return len(self) + 1
-        elif len(nucl) > len(self):
-            return 0
-        if isinstance(nucl, NucleotideSequence):
-            nucl = str(nucl)
-        elif isinstance(nucl, Sequence) and isinstance(nucl[0], Nucleotide):
-            nucl = ''.join([str(n) for n in nucl])
-        return str(self).count(nucl)
+        if isinstance(seq, str):
+            pass
+        elif isinstance(seq, NucleotideSequence):
+            seq = str(seq)
+        elif isinstance(seq, Sequence) and isinstance(seq[0], Nucleotide):
+            seq = ''.join([str(n) for n in seq])
+        return SeqMixin.count(self, seq)
 
     def mask(self, positions: Union[int, Sequence[int]]) -> 'NucleotideSequence':
         """Return a copy of the sequence with the given positions masked.
@@ -743,13 +701,8 @@ class NucleotideSequence(Sequence):
         >>> seq.mask(3)
         ATG#CGTATGAATGA
         """
-        if isinstance(positions, int):
-            positions = [positions]
-        sequence = list(self._sequence)
-        for i in positions:
-            sequence[i] = Nucleotide['Mask']
-        return NucleotideSequence(sequence, is_masked=(len(positions) > 0))
-
+        return MaskMixin.mask(self, positions)
+    
     def masked_positions(self) -> List[int]:
         """Return the positions of the masked nucleotides in the sequence.
         
@@ -764,10 +717,7 @@ class NucleotideSequence(Sequence):
         >>> masked_seq.masked_positions()
         [3]
         """
-        masked_pos = [i for i, n in enumerate(self._sequence) if n.name == 'Mask']
-        if self._is_masked:
-            self._is_masked = len(masked_pos) > 0
-        return masked_pos
+        return MaskMixin.masked_positions(self)
         
     def count_masked(self) -> int:
         """Return the number of masked nucleotides in the sequence.
@@ -786,7 +736,7 @@ class NucleotideSequence(Sequence):
         >>> masked_seq.count_masked()
         1
         """
-        return len(self.masked_positions())
+        return MaskMixin.count_masked(self)
 
     def gapped_positions(self) -> List[int]:
         """Return the positions of the gaps in the sequence.
@@ -802,10 +752,7 @@ class NucleotideSequence(Sequence):
         >>> gapped_seq.gapped_positions()
         [3, 5, 15, 16, 17]
         """
-        gapped_pos = [i for i, n in enumerate(self._sequence) if n.name == 'Gap']
-        if self._is_gapped is None:
-            self._is_gapped = len(gapped_pos) > 0
-        return gapped_pos
+        return GapMixin.gapped_positions(self)
     
     def count_gaps(self) -> int:
         """Return the number of gaps in the sequence.
@@ -824,7 +771,7 @@ class NucleotideSequence(Sequence):
         >>> gapped_seq.count_gaps()
         5
         """
-        return len(self.gapped_positions())
+        return GapMixin.count_gaps(self)
     
         
 # Constants
