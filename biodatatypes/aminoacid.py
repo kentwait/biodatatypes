@@ -644,6 +644,100 @@ class AminoAcid(Enum):
         return self.name in HYDROXYL_AA
 
 
+class AminoAcidSequence(Sequence):
+    def __init__(self, sequence: Sequence[AminoAcid]):
+        self._sequence = sequence
+        self._is_standard = None
+        self._is_degenerate = None
+        
+    def __getitem__(self, index: int) -> AminoAcid:
+        return self.sequence[index]
+    
+    def __len__(self) -> int:
+        return len(self.sequence)
+    
+    def __str__(self) -> str:
+        return ''.join(list(map(str, self.sequence)))
+    
+    def __repr__(self) -> str:
+        return self.__str__()
+    
+    @property
+    def is_standard(self) -> bool:
+        if self._is_standard is None:
+            self._is_standard = all([s.is_standard() for s in self.sequence])
+        return self._is_standard
+    
+    @property
+    def is_degenerate(self) -> bool:
+        if self._is_degenerate is None:
+            self._is_degenerate = any([s.is_degenerate() for s in self.sequence])
+        return self._is_degenerate
+    
+    @property
+    def sequence(self) -> Sequence[AminoAcid]:
+        return self._sequence
+    
+    @classmethod
+    def from_str(cls, sequence: str) -> 'AminoAcidSequence':
+        """Create an AminoAcidSequence from a string of amino acid tokens.
+        
+        Parameters
+        ----------
+        sequence : str
+            A string of amino acid tokens in one-letter code.
+            
+        Returns
+        -------
+        AminoAcidSequence
+            An AminoAcidSequence object.
+            
+        Examples
+        --------
+        >>> AminoAcidSequence.from_str('ARNDCEQGHILKMFPSTWYV')
+        ARNDCEQGHILKMFPSTWYV
+        """
+        return cls([AminoAcid.from_str(s) for s in sequence])
+    
+    @classmethod
+    def from_onehot(cls, sequence: Sequence[Sequence[int]]) -> 'AminoAcidSequence':
+        """Create an AminoAcidSequence from a one-hot encoded sequence.
+        
+        Parameters
+        ----------
+        sequence : Sequence[Sequence[int]]
+            A sequence of one-hot encoded amino acid tokens.
+        
+        Returns
+        -------
+        AminoAcidSequence
+            An AminoAcidSequence object.
+        """        
+        return cls([AminoAcid.from_onehot(s) for s in sequence])
+    
+    def to_str(self) -> str:
+        """Return a string of amino acid tokens in one-letter code.
+        
+        Returns
+        -------
+        str
+            A string of amino acid tokens in one-letter code.
+            
+        Examples
+        --------
+        >>> seq = AminoAcidSequence.from_str('ARNDCEQGHILKMFPSTWYV')
+        >>> seq.to_str()
+        'ARNDCEQGHILKMFPSTWYV'
+        >>> gapped_seq = AminoAcidSequence.from_str('ARNDC--EQGHILKMFPSTWYV')
+        >>> gapped_seq.to_str()
+        'ARNDC--EQGHILKMFPSTWYV'
+        """
+        return str(self)
+        
+    def to_onehot(self) -> Sequence[Sequence[int]]:
+        return [s.to_onehot() for s in self.sequence]
+
+
 # Constants
 
 # Naming
