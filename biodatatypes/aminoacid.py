@@ -1,3 +1,4 @@
+from typing import List
 from enum import Enum
 
 
@@ -25,32 +26,73 @@ class AminoAcid(Enum):
     # Non-standard amino acids
     Sec = 21  # Selenocysteine, U
     Pyl = 22  # Pyrrolysine, O
-    # Ambiguous amino acids
-    Asx = 23  # Asn or Asp, B
-    Glx = 24  # Gln or Glu, Z
-    Xle = 25  # Leu or Ile, J
-    Xaa = 26  # Unknown or Ambiguous, X
     # Special tokens
-    Mask = 27  # Masked, ?
-    Ter = 28  # Terminator, *
+    Ter = 23 # Terminator, *
+    Mask = 24  # Masked, ?
+    Special = 25  # Special, @
     Gap = 0  # Single gap, -
     
     def __str__(self) -> str:
         return self.to_one_letter_code()
     
-    @classmethod
-    def from_one_letter_code(cls, one_letter_code: str) -> 'AminoAcid':
-        return cls[ONE_TO_THREE_LETTER_AA[one_letter_code]]
+    def __repr__(self) -> str:
+        return self.__str__()
+    
+    def __eq__(self, other):
+        if isinstance(other, AminoAcid):
+            return self.value == other.value
+        elif isinstance(other, str):
+            return str(self) == other
+        else:
+            return False
+        
+    def __hash__(self):
+        return hash(str(self))
     
     @classmethod
-    def from_three_letter_code(cls, three_letter_code: str) -> 'AminoAcid':
-        return cls[three_letter_code]
+    def from_str(cls, s: str) -> 'AminoAcid':
+        if len(s) == 1:
+            return cls.from_one_letter(s)
+        elif len(s) == 3:
+            return cls.from_three_letter(s)
+        else:
+            raise ValueError(f'Invalid string: {s}')
+    
+    @classmethod
+    def from_one_letter(cls, one_letter_code: str) -> 'AminoAcid':
+        try:
+            return cls[FROM_ONE_LETTER_TOKEN[one_letter_code.upper()]]
+        except KeyError:
+            raise ValueError(f'Invalid one-letter code: {one_letter_code}')
+    
+    @classmethod
+    def from_three_letter(cls, three_letter_code: str) -> 'AminoAcid':
+        try:
+            return cls[FROM_THREE_LETTER_TOKEN[three_letter_code.capitalize()]]
+        except KeyError:
+            raise ValueError(f'Invalid three-letter code: {three_letter_code}')
+    
+    @classmethod
+    def from_onehot(cls, onehot: List[int]) -> 'AminoAcid':
+        try:
+            return cls(onehot.index(1))
+        except ValueError:
+            raise ValueError(f'Invalid onehot value: {onehot}')
+    
+    # Formatting methods
     
     def to_one_letter_code(self) -> str:
-        return THREE_TO_ONE_LETTER_AA[self.name]
+        return TO_ONE_LETTER_TOKEN[self.name]
     
     def to_three_letter_code(self) -> str:
         return self.name
+    
+    def to_onehot(self) -> List[int]:
+        onehot = [0] * len(self.__class__)
+        onehot[self.value] = 1
+        return onehot
+    
+    # Symbol type
     
     def is_standard(self) -> bool:
         return self.name in STANDARD_AA
@@ -59,20 +101,7 @@ class AminoAcid(Enum):
         return (
             self.name == 'Sec' or 
             self.name == 'Pyl')
-    
-    def is_ambiguous(self) -> bool:
-        return (
-            self.name == 'Asx' or 
-            self.name == 'Glx' or 
-            self.name == 'Xle' or
-            self.name == 'Mask')
-    
-    def is_unknown(self) -> bool:
-        return self.name == 'Xaa'
-    
-    def is_other(self) -> bool:
-        return self.name == 'Xaa'
-    
+        
     def is_terminator(self) -> bool:
         return self.name == 'Ter'
     
@@ -86,7 +115,8 @@ class AminoAcid(Enum):
         return (
             self.name == 'Mask' or
             self.name == 'Ter' or
-            self.name == 'Gap'
+            self.name == 'Gap' or
+            self.name == 'Special'
         )
     
     # Properties
@@ -120,6 +150,32 @@ class AminoAcid(Enum):
     def has_hydroxyl(self) -> bool:
         return self.name in HYDROXYL_AA
 
+
+class AmbiguousAminoAcid(AminoAcid):
+    # Ambiguous amino acids
+    Asx = 26  # Asn or Asp, B
+    Glx = 27  # Gln or Glu, Z
+    Xle = 28  # Leu or Ile, J
+    Xaa = 29  # Unknown or Ambiguous, X
+    
+    # Symbol type
+    
+    def is_any(self):
+        return self == AmbiguousAminoAcid.Xaa
+
+    def is_unknown(self):
+        return self.is_any()
+    
+    def is_other(self):
+        return self.is_any()
+   
+    def is_ambiguous(self) -> bool:
+        return (
+            self.name == 'Asx' or 
+            self.name == 'Glx' or 
+            self.name == 'Xle' or 
+            self.name == 'Xaa')
+
 # Constants
 
 # Naming
@@ -127,16 +183,15 @@ STANDARD_AA = [
     'Ala', 'Arg', 'Asn', 'Asp', 'Cys', 'Glu', 'Gln', 'Gly', 'His', 'Ile',
     'Leu', 'Lys', 'Met', 'Phe', 'Pro', 'Ser', 'Thr', 'Trp', 'Tyr', 'Val'
 ]
-ONE_TO_THREE_LETTER_AA = {
+# One-letter lookup tables
+FROM_ONE_LETTER_TOKEN = {
     'A': 'Ala',
     'R': 'Arg',
     'N': 'Asn',
     'D': 'Asp',
-    'B': 'Asx',
     'C': 'Cys',
     'E': 'Glu',
     'Q': 'Gln',
-    'Z': 'Glx',
     'G': 'Gly',
     'H': 'His',
     'I': 'Ile',
@@ -150,18 +205,25 @@ ONE_TO_THREE_LETTER_AA = {
     'W': 'Trp',
     'Y': 'Tyr',
     'V': 'Val',
-    '*': 'Ter'
+    'U': 'Sec',
+    'O': 'Pyl',
+    '#' : 'Mask',
+    '*': 'Ter',
+    '@': 'Special',
+    '-' : 'Gap',
+    'B': 'Asx',
+    'Z': 'Glx',
+    'J': 'Xle',
+    'X': 'Xaa',
 }
-THREE_TO_ONE_LETTER_AA = {
+TO_ONE_LETTER_TOKEN = {
     'Ala': 'A',
     'Arg': 'R',
     'Asn': 'N',
     'Asp': 'D',
-    'Asx': 'B',
     'Cys': 'C',
     'Glu': 'E',
     'Gln': 'Q',
-    'Glx': 'Z',
     'Gly': 'G',
     'His': 'H',
     'Ile': 'I',
@@ -175,7 +237,81 @@ THREE_TO_ONE_LETTER_AA = {
     'Trp': 'W',
     'Tyr': 'Y',
     'Val': 'V',
+    'Sec': 'U',
+    'Pyl': 'O',
+    'Mask': '#',
+    'Special': '@',
+    'Gap': '-',
     'Ter': '*',
+    'Asx': 'B',
+    'Glx': 'Z',
+    'Xle': 'J',
+    'Xaa': 'X',
+}
+# Three-letter lookup tables
+FROM_THREE_LETTER_TOKEN = {
+    'Ala': 'Ala',
+    'Arg': 'Arg',
+    'Asn': 'Asn',
+    'Asp': 'Asp',
+    'Cys': 'Cys',
+    'Glu': 'Glu',
+    'Gln': 'Gln',
+    'Gly': 'Gly',
+    'His': 'His',
+    'Ile': 'Ile',
+    'Leu': 'Leu',
+    'Lys': 'Lys',
+    'Met': 'Met',
+    'Phe': 'Phe',
+    'Pro': 'Pro',
+    'Ser': 'Ser',
+    'Thr': 'Thr',
+    'Trp': 'Trp',
+    'Tyr': 'Tyr',
+    'Val': 'Val',
+    'Sec': 'Sec',
+    'Pyl': 'Pyl',
+    'Msk': 'Mask',
+    'Spl': 'Special',
+    'Gap': 'Gap',
+    'Ter': 'Ter',
+    'Asx': 'Asx',
+    'Glx': 'Glx',
+    'Xle': 'Xle',
+    'Xaa': 'Xaa',
+}
+TO_THREE_LETTER_TOKEN = {
+    'Ala': 'Ala',
+    'Arg': 'Arg',
+    'Asn': 'Asn',
+    'Asp': 'Asp',
+    'Cys': 'Cys',
+    'Glu': 'Glu',
+    'Gln': 'Gln',
+    'Gly': 'Gly',
+    'His': 'His',
+    'Ile': 'Ile',
+    'Leu': 'Leu',
+    'Lys': 'Lys',
+    'Met': 'Met',
+    'Phe': 'Phe',
+    'Pro': 'Pro',
+    'Ser': 'Ser',
+    'Thr': 'Thr',
+    'Trp': 'Trp',
+    'Tyr': 'Tyr',
+    'Val': 'Val',
+    'Sec': 'Sec',
+    'Pyl': 'Pyl',
+    'Mask': 'Msk',
+    'Special': 'Spl',
+    'Gap': 'Gap',
+    'Ter': 'Ter',
+    'Asx': 'Asx',
+    'Glx': 'Glx',
+    'Xle': 'Xle',
+    'Xaa': 'Xaa',
 }
 
 # Properties
