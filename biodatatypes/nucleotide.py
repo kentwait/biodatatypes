@@ -613,12 +613,12 @@ class NucleotideSequence(Sequence):
             nucl = NucleotideSequence.from_str(nucl)
         return self.sequence[-len(nucl):] == nucl.sequence
 
-    def find(self, nucl: Union[str, Sequence[Nucleotide], 'NucleotideSequence']) -> int:
+    def find(self, seq: Union[str, Sequence[Nucleotide], 'NucleotideSequence']) -> int:
         """Return the index of the first occurrence of the given nucleotide or sequence.
         
         Parameters
         ----------
-        nucl : Union[str, Sequence[Nucleotide]]
+        seq : Union[str, Sequence[Nucleotide]]
             A nucleotide or sequence of nucleotides.
         
         Returns
@@ -640,15 +640,15 @@ class NucleotideSequence(Sequence):
         >>> seq.find('A--')
         -1
         """
-        if len(nucl) == 0:
+        if len(seq) == 0:
             return 0
-        elif len(nucl) > len(self):
+        elif len(seq) > len(self):
             return -1
-        if isinstance(nucl, NucleotideSequence):
-            nucl = str(nucl)
-        elif isinstance(nucl, Sequence) and isinstance(nucl[0], Nucleotide):
-            nucl = ''.join([str(n) for n in nucl])
-        return str(self).find(nucl)
+        if isinstance(seq, NucleotideSequence):
+            seq = str(seq)
+        elif isinstance(seq, Sequence) and isinstance(seq[0], Nucleotide):
+            seq = ''.join([str(n) for n in seq])
+        return str(self).find(seq)
 
     def rfind(self, nucl: Union[str, Sequence[Nucleotide], 'NucleotideSequence']) -> int:
         """Return the index of the last occurrence of the given nucleotide or sequence.
@@ -746,8 +746,8 @@ class NucleotideSequence(Sequence):
         if isinstance(positions, int):
             positions = [positions]
         sequence = list(self._sequence)
-        for position in positions:
-            sequence[position] = Nucleotide['Mask']
+        for i in positions:
+            sequence[i] = Nucleotide['Mask']
         return NucleotideSequence(sequence, is_masked=(len(positions) > 0))
 
     def masked_positions(self) -> List[int]:
