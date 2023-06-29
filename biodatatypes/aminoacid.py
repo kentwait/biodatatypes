@@ -23,14 +23,19 @@ class AminoAcid(Enum):
     Trp = 18
     Tyr = 19
     Val = 20
-    # Non-standard amino acids
-    Sec = 21  # Selenocysteine, U
-    Pyl = 22  # Pyrrolysine, O
     # Special tokens
-    Ter = 23 # Terminator, *
-    Mask = 24  # Masked, ?
-    Special = 25  # Special, @
+    Ter = 21 # Terminator, *
+    Mask = 22  # Masked, ?
+    Special = 23  # Special, @
     Gap = 0  # Single gap, -
+    # Non-standard amino acids
+    Sec = 24  # Selenocysteine, U
+    Pyl = 25  # Pyrrolysine, O
+    # Ambiguous amino acids
+    Asx = 26  # Asn or Asp, B
+    Glx = 27  # Gln or Glu, Z
+    Xle = 28  # Leu or Ile, J
+    Xaa = 29  # Unknown or Ambiguous, X
     
     def __str__(self) -> str:
         return self.to_one_letter_code()
@@ -119,6 +124,22 @@ class AminoAcid(Enum):
             self.name == 'Special'
         )
     
+    def is_any(self):
+        return self.name == 'Xaa'
+
+    def is_unknown(self):
+        return self.is_any()
+    
+    def is_other(self):
+        return self.is_any()
+   
+    def is_ambiguous(self) -> bool:
+        return (
+            self.name == 'Asx' or 
+            self.name == 'Glx' or 
+            self.name == 'Xle' or 
+            self.name == 'Xaa')
+
     # Properties
     
     def is_polar(self) -> bool:
@@ -150,31 +171,6 @@ class AminoAcid(Enum):
     def has_hydroxyl(self) -> bool:
         return self.name in HYDROXYL_AA
 
-
-class AmbiguousAminoAcid(AminoAcid):
-    # Ambiguous amino acids
-    Asx = 26  # Asn or Asp, B
-    Glx = 27  # Gln or Glu, Z
-    Xle = 28  # Leu or Ile, J
-    Xaa = 29  # Unknown or Ambiguous, X
-    
-    # Symbol type
-    
-    def is_any(self):
-        return self == AmbiguousAminoAcid.Xaa
-
-    def is_unknown(self):
-        return self.is_any()
-    
-    def is_other(self):
-        return self.is_any()
-   
-    def is_ambiguous(self) -> bool:
-        return (
-            self.name == 'Asx' or 
-            self.name == 'Glx' or 
-            self.name == 'Xle' or 
-            self.name == 'Xaa')
 
 # Constants
 
