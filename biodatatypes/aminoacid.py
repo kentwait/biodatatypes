@@ -40,14 +40,14 @@ class AminoAcid(Enum):
     
     @classmethod
     def from_one_letter_code(cls, one_letter_code: str) -> 'AminoAcid':
-        return cls[ONE_TO_THREE_LETTER_AA[one_letter_code]]
+        return cls[TO_THREE_LETTER_AA[one_letter_code]]
     
     @classmethod
     def from_three_letter_code(cls, three_letter_code: str) -> 'AminoAcid':
         return cls[three_letter_code]
     
     def to_one_letter_code(self) -> str:
-        return THREE_TO_ONE_LETTER_AA[self.name]
+        return TO_ONE_LETTER_AA[self.name]
     
     def to_three_letter_code(self) -> str:
         return self.name
@@ -127,7 +127,7 @@ STANDARD_AA = [
     'Ala', 'Arg', 'Asn', 'Asp', 'Cys', 'Glu', 'Gln', 'Gly', 'His', 'Ile',
     'Leu', 'Lys', 'Met', 'Phe', 'Pro', 'Ser', 'Thr', 'Trp', 'Tyr', 'Val'
 ]
-ONE_TO_THREE_LETTER_AA = {
+TO_THREE_LETTER_AA = {
     'A': 'Ala',
     'R': 'Arg',
     'N': 'Asn',
@@ -150,9 +150,17 @@ ONE_TO_THREE_LETTER_AA = {
     'W': 'Trp',
     'Y': 'Tyr',
     'V': 'Val',
+    'U': 'Sec',
+    'O': 'Pyl',
+    'B': 'Asx',
+    'Z': 'Glx',
+    'J': 'Xle',
+    'X': 'Xaa',
+    '#': 'Mask',
+    '-': 'Gap',
     '*': 'Ter'
 }
-THREE_TO_ONE_LETTER_AA = {
+TO_ONE_LETTER_AA = {
     'Ala': 'A',
     'Arg': 'R',
     'Asn': 'N',
@@ -175,7 +183,15 @@ THREE_TO_ONE_LETTER_AA = {
     'Trp': 'W',
     'Tyr': 'Y',
     'Val': 'V',
+    'Sec': 'U',
+    'Pyl': 'O',
+    'Asx': 'B',
+    'Glx': 'Z',
+    'Xle': 'J',
+    'Xaa': 'X',
+    'Msk': '#',
     'Ter': '*',
+    'Gap': '-',
 }
 
 # Properties
