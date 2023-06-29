@@ -55,15 +55,6 @@ class Nucleotide(Enum):
 
     # Symbol type
 
-    def is_any(self):
-        return self == Nucleotide.N
-
-    def is_unknown(self):
-        return self.is_any()
-    
-    def is_other(self):
-        return self.is_any()
-   
     def is_masked(self):
         return self == Nucleotide.Mask
 
@@ -127,6 +118,15 @@ class DegenNucleotide(Nucleotide):
     #         self == Nucleotide.X or 
     #         self == Nucleotide.P)
 
+    def is_any(self):
+        return self == Nucleotide.N
+
+    def is_unknown(self):
+        return self.is_any()
+    
+    def is_other(self):
+        return self.is_any()
+   
     def is_ambiguous(self):
         return (
             self == Nucleotide.R or 
