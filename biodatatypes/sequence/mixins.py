@@ -143,7 +143,6 @@ class SeqMixin:
         return str(self).count(substr)
     
 
-
 class MaskMixin:
     def mask(self, positions: Union[int, Sequence[int]]) -> Sequence:
         """Return a new sequence with the given positions masked.
@@ -224,4 +223,3 @@ class GapMixin:
             The number of gapped positions.
         """
         return len(self.gapped_positions())
-
