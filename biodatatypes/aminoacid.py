@@ -204,7 +204,7 @@ class AminoAcid(Enum):
         Traceback (most recent call last):
         ValueError: Invalid onehot value: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         """
-        if len(onehot) != len(cls):
+        if (len(onehot) != len(cls)) or (sum(onehot) != 1):
             raise ValueError(f'Invalid onehot value: {onehot}')
         try:
             return cls(onehot.index(1))
