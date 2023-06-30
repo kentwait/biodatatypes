@@ -2,7 +2,7 @@ from typing import List, Union, Any
 from enum import Enum
 from collections.abc import Sequence
 
-from biodatatypes import Nucleotide, AminoAcid
+from biodatatypes import Nucleotide, AminoAcid, AminoAcidSequence
 
 from biodatatypes.sequence import SeqMixin, MaskMixin, GapMixin
 
@@ -742,6 +742,28 @@ class CodonSequence(GapMixin, MaskMixin, SeqMixin, Sequence):
         2
         """
         return GapMixin.count_gaps(self)
+
+    def translate(self) -> AminoAcidSequence:
+        """Return the amino acid sequence translated from the codon sequence.
+        
+        Returns
+        -------
+        AminoAcidSequence
+            The amino acid sequence translated from the codon sequence.
+            
+        Examples
+        --------
+        >>> seq = CodonSequence.from_str('ATGAAAAAATAG')
+        >>> seq.translate()
+        MKK*
+        >>> gapped_seq = CodonSequence.from_str('ATGAAA---AAATAG')
+        >>> gapped_seq.translate()
+        MK-K*
+        >>> masked_seq = CodonSequence.from_str('ATGAAA###AAATAG')
+        >>> masked_seq.translate()
+        MK#K*
+        """
+        return AminoAcidSequence([c.translate() for c in self._sequence])
 
 
 # Constants
