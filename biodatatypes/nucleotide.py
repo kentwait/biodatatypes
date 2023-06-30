@@ -2,7 +2,9 @@ from typing import Union, List
 from collections.abc import Sequence
 from enum import Enum
 
+from biodatatypes.codon import CodonSequence
 from biodatatypes.sequence import SeqMixin, MaskMixin, GapMixin
+from biodatatypes.constants.nucleotide import *
 
 
 class Nucleotide(Enum):
@@ -519,6 +521,26 @@ class NucleotideSequence(GapMixin, MaskMixin, SeqMixin, Sequence):
     def to_onehot(self) -> Sequence[Sequence[int]]:
         return SeqMixin.to_onehot(self)
     
+    def to_codon_sequence(self) -> 'CodonSequence':
+        """Converts the nucleotide sequence to a codon sequence.
+        
+        Returns
+        -------
+        CodonSequence
+            A CodonSequence object.
+            
+        Examples
+        --------
+        >>> seq = NucleotideSequence.from_str('ATGCCGTATGAATGA')
+        >>> seq
+        ATGCCGTATGAATGA
+        >>> seq.to_codon_sequence()
+        ATG CCG TAT GAA TGA
+        """
+        if len(self) % 3 != 0:
+            raise ValueError('Sequence length must be a multiple of 3.')
+        return CodonSequence(self)
+    
     def startswith(self, seq: Union[str, Sequence[Nucleotide], 'NucleotideSequence']) -> bool:
         """Return True if the sequence starts with the given nucleotide or sequence.
         
@@ -772,51 +794,3 @@ class NucleotideSequence(GapMixin, MaskMixin, SeqMixin, Sequence):
         5
         """
         return GapMixin.count_gaps(self)
-    
-        
-# Constants
-
-FROM_ONE_LETTER_TOKEN = {
-    'A': 'A',
-    'C': 'C',
-    'G': 'G',
-    'T': 'T',
-    'U': 'T',
-    '-': 'Gap',
-    '#': 'Mask',
-    '@': 'Special',
-    'R': 'R',
-    'Y': 'Y',
-    'S': 'S',
-    'W': 'W',
-    'K': 'K',
-    'M': 'M',
-    'B': 'B',
-    'D': 'D',
-    'H': 'H',
-    'V': 'V',
-    'N': 'N',
-}
-TO_ONE_LETTER_TOKEN = {
-    'A': 'A',
-    'C': 'C',
-    'G': 'G',
-    'T': 'T',
-    'U': 'U',
-    'Gap': '-',
-    'Mask': '#',
-    'Special': '@',
-    'R': 'R',
-    'Y': 'Y',
-    'S': 'S',
-    'W': 'W',
-    'K': 'K',
-    'M': 'M',
-    'B': 'B',
-    'D': 'D',
-    'H': 'H',
-    'V': 'V',
-    'N': 'N',
-}
-DEGENERATE_NUCLEOTIDES = ['R', 'Y', 'S', 'W', 'K', 'M', 'B', 'D', 'H', 'V', 'N']
-
