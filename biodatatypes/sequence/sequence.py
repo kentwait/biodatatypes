@@ -2,6 +2,7 @@ from typing import Union, List, Any, Iterator, Iterable
 from collections.abc import Sequence
 
 from biodatatypes.units import Nucleotide, AminoAcid, Codon
+from biodatatypes.constants.nucleotide import COMPLEMENTARY_NUCLEOTIDES
 
 
 class BioSequence(Sequence):
@@ -614,6 +615,59 @@ class NucleotideSequence(BioSequence):
         """
         return super().count_gaps()
 
+    # NucleotideSequence-specific methods
+    
+    def to_reverse_complement(self) -> 'NucleotideSequence':
+        """Return the reverse complement of the sequence.
+        
+        Returns
+        -------
+        NucleotideSequence
+            The reverse complement of the sequence.
+            
+        Examples
+        --------
+        >>> seq = NucleotideSequence.from_str('ATGCCGTATGAATGA')
+        >>> seq.to_reverse_complement()
+        TCATTCATACGGCAT
+        """
+        rc_list = [s.to_complement() for s in self._sequence[::-1]]
+        return NucleotideSequence(
+            rc_list, 
+            self._is_standard, 
+            self._is_degenerate, 
+            self._is_gapped, 
+            self._is_masked)
+        
+    def to_codon_sequence(self) -> 'CodonSequence':
+        """Return the sequence as a CodonSequence.
+        
+        Returns
+        -------
+        CodonSequence
+            The sequence as a CodonSequence.
+            
+        Examples
+        --------
+        >>> seq = NucleotideSequence.from_str('ATGCCGTATGAATGA')
+        >>> seq.to_codon_sequence()
+        ATG CCG TAT GAA TGA
+        >>> invalid_seq = NucleotideSequence.from_str('ATGCCGTATGAATG')
+        >>> invalid_seq.to_codon_sequence()
+        Traceback (most recent call last):
+        ValueError: Cannot convert to CodonSequence. Sequence length must be a multiple of 3: 14
+        >>> gapped_seq = NucleotideSequence.from_str('ATG---TATGAATGA')
+        >>> gapped_seq.to_codon_sequence()
+        ATG --- TAT GAA TGA
+        >>> invalid_gapped_seq = NucleotideSequence.from_str('AT---CTATGAATGA')
+        >>> invalid_gapped_seq.to_codon_sequence()
+        Traceback (most recent call last):
+        ValueError: Invalid codon string: AT-
+        """
+        if len(self) % 3 != 0:
+            raise ValueError(f'Cannot convert to CodonSequence. Sequence length must be a multiple of 3: {len(self)}')
+        return CodonSequence.from_str(str(self))
+
 
 class AminoAcidSequence(BioSequence):
     unit = AminoAcid
@@ -992,30 +1046,6 @@ class CodonSequence(BioSequence):
         if len(sequence) % 3 != 0:
             raise ValueError('Sequence length must be a multiple of 3')
         return super().from_str(cls.unit_iterator(sequence))
-    
-    @classmethod
-    def from_nucleotides(cls, sequence: Sequence[Nucleotide]) -> 'CodonSequence':
-        """Create a CodonSequence from a NucleotideSequence.
-        
-        Parameters
-        ----------
-        sequence : Sequence[Nucleotide]
-            Sequence of Nucleotide objects.
-            
-        Returns
-        -------
-        CodonSequence
-            The CodonSequence.
-            
-        Examples
-        --------
-        >>> seq = [Nucleotide.A, Nucleotide.T, Nucleotide.G, Nucleotide.A, Nucleotide.A, Nucleotide.A, Nucleotide.T, Nucleotide.A, Nucleotide.G]
-        >>> CodonSequence.from_nucleotides(seq)
-        ATG AAA TAG
-        """
-        if len(sequence) % 3 != 0:
-            raise ValueError('Sequence length must be a multiple of 3')
-        return cls([Codon.from_nucleotides(s) for s in cls.unit_iterator(sequence)])
 
     @classmethod
     def from_onehot(cls, sequence: Sequence[Sequence[int]]) -> 'CodonSequence':
@@ -1032,25 +1062,6 @@ class CodonSequence(BioSequence):
             The CodonSequence.
         """
         return super().from_onehot(cls.unit_iterator(sequence))
-
-    @classmethod
-    def from_nucleotide_onehot(cls, sequence: Sequence[Sequence[int]]) -> 'CodonSequence':
-        """Create a CodonSequence from seqeunce of Nucleotide one-hot vectors.
-        
-        Parameters
-        ----------
-        sequence : Sequence[Sequence[int]]
-            The one-hot encoded sequence.
-            
-        Returns
-        -------
-        CodonSequence
-            The CodonSequence.
-        """
-        if len(sequence) % 3 != 0:
-            raise ValueError('Sequence length must be a multiple of 3')
-        sequence = [Nucleotide.from_onehot(s) for s in sequence]
-        return cls([Codon.from_nucleotides(s) for s in cls.unit_iterator(sequence)])
 
     def startswith(self, seq: Union[str, Sequence[Codon], 'CodonSequence']) -> bool:
         """Return True if the sequence starts with the given sequence.
@@ -1308,6 +1319,51 @@ class CodonSequence(BioSequence):
         """
         return super().count_gaps()
 
+    # CodonSequence-specific methods
+
+    @classmethod
+    def from_nucleotides(cls, sequence: Sequence[Nucleotide]) -> 'CodonSequence':
+        """Create a CodonSequence from a NucleotideSequence.
+        
+        Parameters
+        ----------
+        sequence : Sequence[Nucleotide]
+            Sequence of Nucleotide objects.
+            
+        Returns
+        -------
+        CodonSequence
+            The CodonSequence.
+            
+        Examples
+        --------
+        >>> seq = [Nucleotide.A, Nucleotide.T, Nucleotide.G, Nucleotide.A, Nucleotide.A, Nucleotide.A, Nucleotide.T, Nucleotide.A, Nucleotide.G]
+        >>> CodonSequence.from_nucleotides(seq)
+        ATG AAA TAG
+        """
+        if len(sequence) % 3 != 0:
+            raise ValueError('Sequence length must be a multiple of 3')
+        return cls([Codon.from_nucleotides(s) for s in cls.unit_iterator(sequence)])
+
+    @classmethod
+    def from_nucleotide_onehot(cls, sequence: Sequence[Sequence[int]]) -> 'CodonSequence':
+        """Create a CodonSequence from seqeunce of Nucleotide one-hot vectors.
+        
+        Parameters
+        ----------
+        sequence : Sequence[Sequence[int]]
+            The one-hot encoded sequence.
+            
+        Returns
+        -------
+        CodonSequence
+            The CodonSequence.
+        """
+        if len(sequence) % 3 != 0:
+            raise ValueError('Sequence length must be a multiple of 3')
+        sequence = [Nucleotide.from_onehot(s) for s in sequence]
+        return cls([Codon.from_nucleotides(s) for s in cls.unit_iterator(sequence)])
+
     def translate(self) -> AminoAcidSequence:
         """Return the amino acid sequence translated from the codon sequence.
         
@@ -1330,3 +1386,68 @@ class CodonSequence(BioSequence):
         """
         return AminoAcidSequence([c.translate() for c in self._sequence])
 
+    def to_reverse_complement(self) -> 'CodonSequence':
+        """Return the reverse complement of the sequence.
+        
+        Returns
+        -------
+        NucleotideSequence
+            The reverse complement of the sequence.
+            
+        Examples
+        --------
+        >>> str_seq = 'ATGCCGTATGAATGA'
+        >>> seq = CodonSequence.from_str(str_seq)
+        >>> rc = seq.to_reverse_complement()
+        >>> rc
+        TCA TTC ATA CGG CAT
+        >>> rc_rc = rc.to_reverse_complement()
+        >>> rc_rc
+        ATG CCG TAT GAA TGA
+        >>> str_seq == str(rc_rc)
+        True
+        """
+        rc_nucl_str_list = [COMPLEMENTARY_NUCLEOTIDES[s] for s in str(self)[::-1]]
+        rc_list = [
+            Codon.from_str(''.join(rc_nucl_str_list[i:i+3])) 
+            for i in range(0, len(rc_nucl_str_list), 3)]
+        return CodonSequence(
+            rc_list, 
+            self._is_standard, 
+            self._is_degenerate, 
+            self._is_gapped, 
+            self._is_masked)
+    
+    def to_amino_acid_sequence(self) -> 'AminoAcidSequence':
+        """Translates the codon sequence to an amino acid sequence.
+        
+        Returns
+        -------
+        AminoAcidSequence
+            The translated amino acid sequence.
+        
+        See also
+        --------
+        translate
+        """
+        return self.translate()
+        
+    def to_nucleotide_sequence(self) -> 'NucleotideSequence':
+        """Return the sequence as a NuclotideSequence.
+        
+        Returns
+        -------
+        NuclotideSequence
+            The sequence as a NuclotideSequence.
+            
+        Examples
+        --------
+        >>> str_seq = 'ATGCCG---TATGAATGA'
+        >>> seq = CodonSequence.from_str(str_seq)
+        >>> nucl_seq = seq.to_nucleotide_sequence()
+        >>> nucl_seq
+        ATGCCG---TATGAATGA
+        >>> str_seq == str(nucl_seq)
+        True
+        """
+        return NucleotideSequence.from_str(str(self))
