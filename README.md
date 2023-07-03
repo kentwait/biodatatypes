@@ -15,7 +15,7 @@ from biodatatypes import NucleotideSequence, AminoAcidSequence, CodonSequence
 
 # Nucleotide
 nucleotide_a = Nucleotide['A']
-nucleotide_c = Nucleotide.c
+nucleotide_c = Nucleotide.C
 nucleotide_g = Nucleotide.from_str('G')
 nucleotide_t = Nucleotide(4)
 gap = Nucleotide['-']
@@ -24,7 +24,7 @@ also_gap = Nucleotide.Gap
 # AminoAcid
 amino_acid_ala = AminoAcid['Ala']
 amino_acid_arg = AminoAcid.Arg
-amino_acid_asn = AminoAcid.from_str('Asn')
+amino_acid_asn = AminoAcid.from_str('N')
 amino_acid_asp = AminoAcid(4)
 stop = AminoAcid['Stop']
 also_stop = AminoAcid.Stop
