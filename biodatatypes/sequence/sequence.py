@@ -6,15 +6,37 @@ from biodatatypes.constants.nucleotide import COMPLEMENTARY_NUCLEOTIDES
 
 
 class BioSequence(Sequence):
+    """
+    A BioSequence is a generic sequence composed objects inheriting from the BioToken class
+    such as Nucleotide, AminoAcid, or Codon. It is a wrapper around a list of BioTokens
+    that provides some useful methods for working with sequences.
+    
+    This class is meant to be inherited from and extended to provide more specific
+    functionality for different types of sequences.
+    
+    Attributes
+    ----------
+    sequence : Sequence
+        A list of BioTokens.
+    is_standard : bool
+        Whether or not the sequence is composed of standard tokens.
+    is_degenerate : bool
+        Whether or not the sequence contains any ambiguous tokens.
+    is_gapped : bool
+        Whether or not the sequence contains any gap tokens.
+    is_masked : bool
+        Whether or not the sequence contains any mask tokens.
+    
+    """
     def __init__(self, 
             sequence: Sequence, 
             is_standard: bool = None,
-            is_degenerate: bool = None, 
+            is_ambiguous: bool = None, 
             is_gapped: bool = None, 
             is_masked: bool = None):
         self._sequence = list(sequence)
         self._is_standard = is_standard
-        self._is_degenerate = is_degenerate
+        self._is_degenerate = is_ambiguous
         self._is_gapped = is_gapped
         self._is_masked = is_masked
     
@@ -270,15 +292,31 @@ class BioSequence(Sequence):
 
 
 class NucleotideSequence(BioSequence):
+    """
+    A sequence of nucleotides.
+    
+    Parameters
+    ----------
+    sequence : Sequence[Nucleotide]
+        A sequence of nucleotides as Nucleotide objects.
+    is_standard : bool, optional
+        Whether the sequence is standard (i.e. only contains standard nucleotides).
+    is_ambiguous : bool, optional
+        True if the sequence contains ambiguous nucleotides
+    is_gapped : bool, optional
+        True if the sequence is gapped (i.e. contains at least one gap).
+    is_masked : bool, optional
+        True if the sequence is masked (i.e. contains at least one the masked position).
+    """
     unit = Nucleotide
     
     def __init__(self, 
             sequence: Sequence[Nucleotide], 
             is_standard: bool = None, 
-            is_degenerate: bool = None, 
+            is_ambiguous: bool = None, 
             is_gapped: bool = None, 
             is_masked: bool = None):
-        super().__init__(sequence, is_standard, is_degenerate, is_gapped, is_masked)
+        super().__init__(sequence, is_standard, is_ambiguous, is_gapped, is_masked)
         
     @classmethod
     def from_str(cls, sequence: str) -> 'NucleotideSequence':
@@ -670,15 +708,31 @@ class NucleotideSequence(BioSequence):
 
 
 class AminoAcidSequence(BioSequence):
+    """
+    A sequence of amino acids.
+    
+    Parameters
+    ----------
+    sequence : Sequence[AminoAcid]
+        The sequence of amino acids as AminoAcid objects.
+    is_standard : bool, optional
+        Whether the sequence is standard (i.e. only contains standard amino acids).
+    is_ambiguous : bool, optional
+        True if the sequence contains ambiguous nucleotides
+    is_gapped : bool, optional
+        True if the sequence is gapped (i.e. contains at least one gap).
+    is_masked : bool, optional
+        True if the sequence is masked (i.e. contains at least one the masked position).
+    """
     unit = AminoAcid
     
     def __init__(self, 
             sequence: Sequence[AminoAcid],
             is_standard: bool = None, 
-            is_degenerate: bool = None, 
+            is_ambiguous: bool = None, 
             is_gapped: bool = None, 
             is_masked: bool = None):
-        super().__init__(sequence, is_standard, is_degenerate, is_gapped, is_masked)
+        super().__init__(sequence, is_standard, is_ambiguous, is_gapped, is_masked)
             
     @classmethod
     def from_str(cls, sequence: str) -> 'AminoAcidSequence':
@@ -1007,15 +1061,30 @@ class AminoAcidSequence(BioSequence):
 
 
 class CodonSequence(BioSequence):
+    """A sequence of codons.
+    
+    Parameters
+    ----------
+    sequence : Sequence[Codon]
+        The sequence of codons as Codon objects.
+    is_standard : bool, optional
+        Whether the sequence is standard (i.e. only contains standard codons).
+    is_ambiguous : bool, optional
+        True if the sequence contains ambiguous codons.
+    is_gapped : bool, optional
+        True if the sequence is gapped (i.e. contains at least one gap).
+    is_masked : bool, optional
+        True if the sequence is masked (i.e. contains at least one the masked position).
+    """
     unit = Codon
 
     def __init__(self, 
             sequence: Sequence[Codon],
             is_standard: bool = None, 
-            is_degenerate: bool = None, 
+            is_ambiguous: bool = None, 
             is_gapped: bool = None, 
             is_masked: bool = None):
-        super().__init__(sequence, is_standard, is_degenerate, is_gapped, is_masked)
+        super().__init__(sequence, is_standard, is_ambiguous, is_gapped, is_masked)
 
     def __repr__(self) -> str:
         return ' '.join([str(c) for c in self._sequence])
