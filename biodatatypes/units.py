@@ -8,6 +8,29 @@ from biodatatypes.constants.codon import *
 
 
 class BioToken(Enum):
+    """Base class for all biological sequence unit tokens as Enum members.
+
+    This subclasses the Enum datatype but does not define any members.
+    This class is intended to be subclassed for each type of unit token: 
+    Nucleotide, AminoAcid, Codon. 
+    Each subclass should define its own set of tokens as class attributes. 
+    
+    Attributes
+    ----------
+    name : str
+        The name of the token. This is used to identify the token and may be also be its string representations.
+        
+        Standard tokens should be named after their string representation.
+        Special tokens like those representing a gap, mask, or other are always named 'Gap', 'Mask', and 'Other' respectively.
+        
+    value : int
+        The integer value of the token. This is used for indexing into
+        onehot vectors.
+        
+        Gap tokens are always assigned the value 0.
+        Standard tokens are always assigned the values from 1 to n.
+        Special tokens are always assigned the the highest values, and the Mask token is always assigned the highest value.
+    """
     def __repr__(self) -> str:
         return self.__str__()
     
@@ -82,6 +105,15 @@ class BioToken(Enum):
 
 
 class Nucleotide(BioToken):
+    """A nucleotide token.
+    
+    Attributes
+    ----------
+    name : str
+        The name of the token. This is used to identify the token and may be also be its string representations.
+    value : int
+        The integer value of the token. This is used for indexing into onehot vectors.
+    """
     A = 1
     C = 2
     G = 3
@@ -572,6 +604,25 @@ class Nucleotide(BioToken):
 
 
 class AminoAcid(BioToken):
+    """Amino acid tokens.
+    
+    Attributes
+    ----------
+    name : str
+        The name of the amino acid in three-letter code.
+        
+        Other unspecified amino acids are named 'Xaa'.
+        
+        Special tokens representing a gap, mask, other special non-amino acid token, 
+        or termination signal are named 'Gap', 'Mask', 'Other', and 'Stop', respectively.
+    value : int
+        The integer value of the amino acid.
+        
+        Standard amino acids are assigned values from 1 to 20.
+        Sec and Pyl are assigned values 21 and 22, respectively.
+        Ambiguous amino acids are assigned values 23 to 26.
+        Special non-amino acid tokens are assigned values 0, and 27 to 29 inclusive.
+    """
     Ala = 1
     Arg = 2
     Asn = 3
@@ -1251,6 +1302,20 @@ class AminoAcid(BioToken):
 
 
 class Codon(BioToken):
+    """A codon token.
+    
+    Attributes
+    ----------
+    name : str
+        Three-letter sequence for the codon (e.g. 'AAA') or the designated name 
+        of the special token.
+    value : int
+        The integer value of the codon.
+        
+        Standard codons are assigned values 1-64.
+        Ambiguous codon NNN is assigned value 65.
+        Special tokens 'Gap', 'Other', and 'Mask' are assigned values 0, 66, and 67, respectively.
+    """
     AAA = 1
     AAC = 2
     AAG = 3
