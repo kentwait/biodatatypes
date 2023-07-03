@@ -1,7 +1,7 @@
-from typing import Union, List, Any, Iterator, Iterable
+from typing import Union, Optional, List, Any, Iterator, Iterable, cast
 from collections.abc import Sequence
 
-from biodatatypes.units import Nucleotide, AminoAcid, Codon
+from biodatatypes.units import BioToken, Nucleotide, AminoAcid, Codon
 from biodatatypes.constants.nucleotide import COMPLEMENTARY_NUCLEOTIDES
 
 
@@ -28,12 +28,14 @@ class BioSequence(Sequence):
         Whether or not the sequence contains any mask tokens.
     
     """
+    unit = BioToken
+    
     def __init__(self, 
-            sequence: Sequence, 
-            is_standard: bool = None,
-            is_ambiguous: bool = None, 
-            is_gapped: bool = None, 
-            is_masked: bool = None):
+            sequence: Sequence[BioToken], 
+            is_standard: Optional[bool] = None,
+            is_ambiguous: Optional[bool] = None, 
+            is_gapped: Optional[bool] = None, 
+            is_masked: Optional[bool] = None):
         self._sequence = list(sequence)
         self._is_standard = is_standard
         self._is_degenerate = is_ambiguous
@@ -59,9 +61,9 @@ class BioSequence(Sequence):
         return self._is_standard
     
     @property
-    def is_degenerate(self) -> bool:
+    def is_ambiguous(self) -> bool:
         if self._is_degenerate is None:
-            self._is_degenerate = any([s.is_degenerate() for s in self.sequence])
+            self._is_degenerate = any([s.is_ambiguous() for s in self.sequence])
         return self._is_degenerate
     
     @property
@@ -73,11 +75,11 @@ class BioSequence(Sequence):
     @property
     def is_masked(self) -> bool:
         if self._is_masked is None:
-            self._is_masked = any([s.is_masked() for s in self.sequence])
+            self._is_masked = any([s.is_mask() for s in self.sequence])
         return self._is_masked
     
     @property
-    def sequence(self) -> Sequence:
+    def sequence(self) -> Sequence[BioToken]:
         return self._sequence
     
     @classmethod
@@ -138,7 +140,7 @@ class BioSequence(Sequence):
         bool
             True if the sequence starts with the given sequence.
         """
-        return self.sequence[:len(seq)] == seq.sequence
+        return self.sequence[:len(seq)] == seq
 
     def endswith(self, seq: Sequence) -> bool:
         """Return True if the sequence ends with the given sequence.
@@ -153,7 +155,7 @@ class BioSequence(Sequence):
         bool
             True if the sequence ends with the given sequence.
         """
-        return self.sequence[-len(seq):] == seq.sequence
+        return self.sequence[-len(seq):] == seq
 
     def find(self, substr: str) -> int:
         """Return the index of the first occurrence of the given sequence.
@@ -312,10 +314,10 @@ class NucleotideSequence(BioSequence):
     
     def __init__(self, 
             sequence: Sequence[Nucleotide], 
-            is_standard: bool = None, 
-            is_ambiguous: bool = None, 
-            is_gapped: bool = None, 
-            is_masked: bool = None):
+            is_standard: Optional[bool] = None,
+            is_ambiguous: Optional[bool] = None, 
+            is_gapped: Optional[bool] = None, 
+            is_masked: Optional[bool] = None):
         super().__init__(sequence, is_standard, is_ambiguous, is_gapped, is_masked)
         
     @classmethod
@@ -339,7 +341,7 @@ class NucleotideSequence(BioSequence):
         >>> NucleotideSequence.from_str('ATG-A-CCGTATGAA---TGA')
         ATG-A-CCGTATGAA---TGA
         """
-        return super().from_str(sequence)
+        return cast(NucleotideSequence, super().from_str(sequence))
     
     @classmethod
     def from_onehot(cls, sequence: Sequence[Sequence[int]]) -> 'NucleotideSequence':
@@ -355,7 +357,7 @@ class NucleotideSequence(BioSequence):
         NucleotideSequence
             An NucleotideSequence object.
         """        
-        return super().from_onehot(sequence)
+        return cast(NucleotideSequence, super().from_onehot(sequence))
     
     def to_str(self) -> str:
         """Return a string of nucleotide tokens in one-letter code.
@@ -378,26 +380,6 @@ class NucleotideSequence(BioSequence):
         
     def to_onehot(self) -> Sequence[Sequence[int]]:
         return super().to_onehot()
-    
-    def to_codon_sequence(self) -> 'CodonSequence':
-        """Converts the nucleotide sequence to a codon sequence.
-        
-        Returns
-        -------
-        CodonSequence
-            A CodonSequence object.
-            
-        Examples
-        --------
-        >>> seq = NucleotideSequence.from_str('ATGCCGTATGAATGA')
-        >>> seq
-        ATGCCGTATGAATGA
-        >>> seq.to_codon_sequence()
-        ATG CCG TAT GAA TGA
-        """
-        if len(self) % 3 != 0:
-            raise ValueError('Sequence length must be a multiple of 3.')
-        return CodonSequence.from_nucleotides(self)
     
     def startswith(self, seq: Union[str, Sequence[Nucleotide], 'NucleotideSequence']) -> bool:
         """Return True if the sequence starts with the given nucleotide or sequence.
@@ -490,7 +472,7 @@ class NucleotideSequence(BioSequence):
             seq = str(seq)
         elif isinstance(seq, Sequence) and isinstance(seq[0], Nucleotide):
             seq = ''.join([str(n) for n in seq])
-        return super().find(seq)
+        return super().find(cast(str, seq))
 
     def rfind(self, seq: Union[str, Sequence[Nucleotide], 'NucleotideSequence']) -> int:
         """Return the index of the last occurrence of the given nucleotide or sequence.
@@ -525,7 +507,7 @@ class NucleotideSequence(BioSequence):
             seq = str(seq)
         elif isinstance(seq, Sequence) and isinstance(seq[0], Nucleotide):
             seq = ''.join([str(n) for n in seq])
-        return super().rfind(seq)
+        return super().rfind(cast(str, seq))
 
     def count(self, seq: Union[str, Sequence[Nucleotide], 'NucleotideSequence']) -> int:
         """Return the number of occurrences of the given nucleotide or sequence.
@@ -560,7 +542,7 @@ class NucleotideSequence(BioSequence):
             seq = str(seq)
         elif isinstance(seq, Sequence) and isinstance(seq[0], Nucleotide):
             seq = ''.join([str(n) for n in seq])
-        return super().count(seq)
+        return super().count(cast(str, seq))
 
     def mask(self, positions: Union[int, Sequence[int]]) -> 'NucleotideSequence':
         """Return a copy of the sequence with the given positions masked.
@@ -581,7 +563,7 @@ class NucleotideSequence(BioSequence):
         >>> seq.mask(3)
         ATG#CGTATGAATGA
         """
-        return super().mask(positions)
+        return cast(NucleotideSequence, super().mask(positions))
     
     def masked_positions(self) -> List[int]:
         """Return the positions of the masked nucleotides in the sequence.
@@ -669,14 +651,14 @@ class NucleotideSequence(BioSequence):
         >>> seq.to_reverse_complement()
         TCATTCATACGGCAT
         """
-        rc_list = [s.to_complement() for s in self._sequence[::-1]]
+        rc_list = [cast(Nucleotide, s).to_complement() for s in self._sequence[::-1]]
         return NucleotideSequence(
             rc_list, 
             self._is_standard, 
             self._is_degenerate, 
             self._is_gapped, 
             self._is_masked)
-        
+
     def to_codon_sequence(self) -> 'CodonSequence':
         """Return the sequence as a CodonSequence.
         
@@ -704,7 +686,8 @@ class NucleotideSequence(BioSequence):
         """
         if len(self) % 3 != 0:
             raise ValueError(f'Cannot convert to CodonSequence. Sequence length must be a multiple of 3: {len(self)}')
-        return CodonSequence.from_str(str(self))
+        return CodonSequence.from_nucleotides(self)
+
 
 
 class AminoAcidSequence(BioSequence):
@@ -728,10 +711,10 @@ class AminoAcidSequence(BioSequence):
     
     def __init__(self, 
             sequence: Sequence[AminoAcid],
-            is_standard: bool = None, 
-            is_ambiguous: bool = None, 
-            is_gapped: bool = None, 
-            is_masked: bool = None):
+            is_standard: Optional[bool] = None,
+            is_ambiguous: Optional[bool] = None, 
+            is_gapped: Optional[bool] = None, 
+            is_masked: Optional[bool] = None):
         super().__init__(sequence, is_standard, is_ambiguous, is_gapped, is_masked)
             
     @classmethod
@@ -753,7 +736,7 @@ class AminoAcidSequence(BioSequence):
         >>> AminoAcidSequence.from_str('ARNDCEQGHILKMFPSTWYV')
         ARNDCEQGHILKMFPSTWYV
         """
-        return super().from_str(sequence)
+        return cast(AminoAcidSequence, super().from_str(sequence))
     
     @classmethod
     def from_onehot(cls, sequence: Sequence[Sequence[int]]) -> 'AminoAcidSequence':
@@ -769,7 +752,7 @@ class AminoAcidSequence(BioSequence):
         AminoAcidSequence
             An AminoAcidSequence object.
         """        
-        return super().from_onehot(sequence)
+        return cast(AminoAcidSequence, super().from_onehot(sequence))
     
     def to_str(self) -> str:
         """Return a string of amino acid tokens in one-letter code.
@@ -884,7 +867,7 @@ class AminoAcidSequence(BioSequence):
             seq = str(seq)
         elif isinstance(seq, Sequence) and isinstance(seq[0], AminoAcid):
             seq = ''.join([str(s) for s in seq])
-        return super().find(seq)
+        return super().find(cast(str, seq))
 
     def rfind(self, seq: Union[str, Sequence[AminoAcid], 'AminoAcidSequence']) -> int:
         """Return the index of the last occurrence of the given sequence.
@@ -921,7 +904,7 @@ class AminoAcidSequence(BioSequence):
             seq = str(seq)
         elif isinstance(seq, Sequence) and isinstance(seq[0], AminoAcid):
             seq = ''.join([str(s) for s in seq])
-        return super().rfind(seq)
+        return super().rfind(cast(str, seq))
     
     def count(self, seq: Union[str, Sequence[AminoAcid], 'AminoAcidSequence']) -> int:
         """Return the number of occurrences of the given sequence.
@@ -956,7 +939,7 @@ class AminoAcidSequence(BioSequence):
             seq = str(seq)
         elif isinstance(seq, Sequence) and isinstance(seq[0], AminoAcid):
             seq = ''.join([str(s) for s in seq])
-        return super().count(seq)
+        return super().count(cast(str, seq))
     
     def mask(self, positions: Union[int, Sequence[int]]) -> 'AminoAcidSequence':
         """Return a new sequence with the given positions masked.
@@ -979,7 +962,7 @@ class AminoAcidSequence(BioSequence):
         >>> seq.mask([0, 1, -1])
         ##NDCEQGHILKMFPSTWY#
         """
-        return super().mask(positions)
+        return cast(AminoAcidSequence, super().mask(positions))
             
     def masked_positions(self) -> List[int]:
         """Return the positions that are masked.
@@ -1080,17 +1063,17 @@ class CodonSequence(BioSequence):
 
     def __init__(self, 
             sequence: Sequence[Codon],
-            is_standard: bool = None, 
-            is_ambiguous: bool = None, 
-            is_gapped: bool = None, 
-            is_masked: bool = None):
+            is_standard: Optional[bool] = None,
+            is_ambiguous: Optional[bool] = None, 
+            is_gapped: Optional[bool] = None, 
+            is_masked: Optional[bool] = None):
         super().__init__(sequence, is_standard, is_ambiguous, is_gapped, is_masked)
 
     def __repr__(self) -> str:
         return ' '.join([str(c) for c in self._sequence])
     
     @staticmethod
-    def unit_iterator(sequence: Sequence[Codon]) -> Iterator[Codon]:
+    def unit_iterator(sequence) -> Iterator:
         return (sequence[i:i+3] for i in range(0, len(sequence), 3))
     
     @classmethod
@@ -1114,7 +1097,7 @@ class CodonSequence(BioSequence):
         """
         if len(sequence) % 3 != 0:
             raise ValueError('Sequence length must be a multiple of 3')
-        return super().from_str(cls.unit_iterator(sequence))
+        return cast(CodonSequence, super().from_str(cls.unit_iterator(sequence)))
 
     @classmethod
     def from_onehot(cls, sequence: Sequence[Sequence[int]]) -> 'CodonSequence':
@@ -1130,7 +1113,7 @@ class CodonSequence(BioSequence):
         CodonSequence
             The CodonSequence.
         """
-        return super().from_onehot(cls.unit_iterator(sequence))
+        return cast(CodonSequence, super().from_onehot(sequence))
 
     def startswith(self, seq: Union[str, Sequence[Codon], 'CodonSequence']) -> bool:
         """Return True if the sequence starts with the given sequence.
@@ -1217,7 +1200,7 @@ class CodonSequence(BioSequence):
             seq = str(seq)
         elif isinstance(seq, Sequence) and isinstance(seq[0], Codon):
             seq = ''.join([str(s) for s in seq])
-        return super().find(seq) // 3
+        return super().find(cast(str, seq)) // 3
         
     def rfind(self, seq: Union[str, Sequence[Codon], 'CodonSequence']) -> int:
         """Return the highest index in the sequence where the given subsequence is found.
@@ -1250,7 +1233,7 @@ class CodonSequence(BioSequence):
             seq = str(seq)
         elif isinstance(seq, Sequence) and isinstance(seq[0], Codon):
             seq = ''.join([str(s) for s in seq])
-        return super().rfind(seq) // 3
+        return super().rfind(cast(str, seq)) // 3
 
     def count(self, seq: Union[str, Sequence[Codon], 'CodonSequence']) -> int:
         """Return the number of non-overlapping occurrences of the given subsequence.
@@ -1283,7 +1266,8 @@ class CodonSequence(BioSequence):
             pass
         elif isinstance(seq, Sequence) and isinstance(seq[0], Codon):
             seq = CodonSequence(seq)
-        return sum(self.sequence[i:i+len(seq)] == seq.sequence 
+        seq = cast(CodonSequence, seq)
+        return sum(self.sequence[i:i+len(seq)] == seq.sequence
                    for i in range(0, len(self)-len(seq)+1))
 
     def mask(self, positions: Union[int, Sequence[int]]) -> 'CodonSequence':
@@ -1307,7 +1291,7 @@ class CodonSequence(BioSequence):
         >>> seq.mask([0, 1, 2])
         ### ### ### TAG
         """
-        return super().mask(positions)
+        return cast(CodonSequence, super().mask(positions))
     
     def masked_positions(self) -> List[int]:
         """Return a list of masked positions.
@@ -1430,8 +1414,8 @@ class CodonSequence(BioSequence):
         """
         if len(sequence) % 3 != 0:
             raise ValueError('Sequence length must be a multiple of 3')
-        sequence = [Nucleotide.from_onehot(s) for s in sequence]
-        return cls([Codon.from_nucleotides(s) for s in cls.unit_iterator(sequence)])
+        nucl_sequence = [Nucleotide.from_onehot(s) for s in sequence]
+        return cls([Codon.from_nucleotides(s) for s in cls.unit_iterator(nucl_sequence)])
 
     def translate(self) -> AminoAcidSequence:
         """Return the amino acid sequence translated from the codon sequence.
@@ -1453,7 +1437,7 @@ class CodonSequence(BioSequence):
         >>> masked_seq.translate()
         MK#K*
         """
-        return AminoAcidSequence([c.translate() for c in self._sequence])
+        return AminoAcidSequence([cast(Codon, c).translate() for c in self._sequence])
 
     def to_reverse_complement(self) -> 'CodonSequence':
         """Return the reverse complement of the sequence.
