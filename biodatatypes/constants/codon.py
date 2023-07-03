@@ -1,4 +1,6 @@
 TRANSLATION_TABLE = {
+    'Gap': 'Gap',
+    # Standard triplet tokens
     'AAA': 'Lys',
     'AAC': 'Asn',
     'AAG': 'Lys',
@@ -47,15 +49,15 @@ TRANSLATION_TABLE = {
     'GTC': 'Val',
     'GTG': 'Val',
     'GTT': 'Val',
-    'TAA': 'Ter',
+    'TAA': 'Stop',  # Stop codon
     'TAC': 'Tyr',
-    'TAG': 'Ter',
+    'TAG': 'Stop',  # Stop codon
     'TAT': 'Tyr',
     'TCA': 'Ser',
     'TCC': 'Ser',
     'TCG': 'Ser',
     'TCT': 'Ser',
-    'TGA': 'Ter',
+    'TGA': 'Stop',  # Stop codon
     'TGC': 'Cys',
     'TGG': 'Trp',
     'TGT': 'Cys',
@@ -63,14 +65,15 @@ TRANSLATION_TABLE = {
     'TTC': 'Phe',
     'TTG': 'Leu',
     'TTT': 'Phe',
+    # Ambiguous triplet tokens
+    'NNN': 'Xaa',
     # Special triplet tokens
     'Mask': 'Mask',
-    'Gap': 'Gap',
-    'Special': 'Special',
-    # Ambiguous triplet tokens
-    'NNN': 'Xaa'   
+    'Other': 'Other',
 }
-FROM_TRIPLET_TOKEN = {
+NAME_TO_TRIPLET_TOKEN = {
+    'Gap': '---',
+    # Standard amino acids
     'AAA': 'AAA',
     'AAC': 'AAC',
     'AAG': 'AAG',
@@ -119,15 +122,15 @@ FROM_TRIPLET_TOKEN = {
     'GTC': 'GTC',
     'GTG': 'GTG',
     'GTT': 'GTT',
-    'TAA': 'TAA',
+    'TAA': 'TAA',  # stop codon
     'TAC': 'TAC',
-    'TAG': 'TAG',
+    'TAG': 'TAG',  # stop codon
     'TAT': 'TAT',
     'TCA': 'TCA',
     'TCC': 'TCC',
     'TCG': 'TCG',
     'TCT': 'TCT',
-    'TGA': 'TGA',
+    'TGA': 'TGA',  # stop codon
     'TGC': 'TGC',
     'TGG': 'TGG',
     'TGT': 'TGT',
@@ -135,11 +138,106 @@ FROM_TRIPLET_TOKEN = {
     'TTC': 'TTC',
     'TTG': 'TTG',
     'TTT': 'TTT',
-    '---': 'Gap',
-    '###': 'Mask',
-    '@@@': 'Special',
+    # Ambiguous triplet tokens
     'NNN': 'NNN',
+    # Special triplet tokens
+    'Other': '@@@',
+    'Mask': '###',
 }
+TRIPLET_TOKEN_TO_NAME = {
+    '---': 'Gap',
+    'AAA': 'AAA',
+    'AAC': 'AAC',
+    'AAG': 'AAG',
+    'AAT': 'AAT',
+    'ACA': 'ACA',
+    'ACC': 'ACC',
+    'ACG': 'ACG',
+    'ACT': 'ACT',
+    'AGA': 'AGA',
+    'AGC': 'AGC',
+    'AGG': 'AGG',
+    'AGT': 'AGT',
+    'ATA': 'ATA',
+    'ATC': 'ATC',
+    'ATG': 'ATG',
+    'ATT': 'ATT',
+    'CAA': 'CAA',
+    'CAC': 'CAC',
+    'CAG': 'CAG',
+    'CAT': 'CAT',
+    'CCA': 'CCA',
+    'CCC': 'CCC',
+    'CCG': 'CCG',
+    'CCT': 'CCT',
+    'CGA': 'CGA',
+    'CGC': 'CGC',
+    'CGG': 'CGG',
+    'CGT': 'CGT',
+    'CTA': 'CTA',
+    'CTC': 'CTC',
+    'CTG': 'CTG',
+    'CTT': 'CTT',
+    'GAA': 'GAA',
+    'GAC': 'GAC',
+    'GAG': 'GAG',
+    'GAT': 'GAT',
+    'GCA': 'GCA',
+    'GCC': 'GCC',
+    'GCG': 'GCG',
+    'GCT': 'GCT',
+    'GGA': 'GGA',
+    'GGC': 'GGC',
+    'GGG': 'GGG',
+    'GGT': 'GGT',
+    'GTA': 'GTA',
+    'GTC': 'GTC',
+    'GTG': 'GTG',
+    'GTT': 'GTT',
+    'TAA': 'TAA',  # stop codon
+    'TAC': 'TAC',
+    'TAG': 'TAG',  # stop codon
+    'TAT': 'TAT',
+    'TCA': 'TCA',
+    'TCC': 'TCC',
+    'TCG': 'TCG',
+    'TCT': 'TCT',
+    'TGA': 'TGA',  # stop codon
+    'TGC': 'TGC',
+    'TGG': 'TGG',
+    'TGT': 'TGT',
+    'TTA': 'TTA',
+    'TTC': 'TTC',
+    'TTG': 'TTG',
+    'TTT': 'TTT',
+    # Ambiguous triplet tokens
+    'NNN': 'NNN',
+    # Special triplet tokens
+    '@@@': 'Special',
+    '###': 'Mask',
+}
+
+STANDARD_CODONS = [
+    'AAA', 'AAC', 'AAG', 'AAT',
+    'ACA', 'ACC', 'ACG', 'ACT',
+    'AGA', 'AGC', 'AGG', 'AGT',
+    'ATA', 'ATC', 'ATG', 'ATT',
+    
+    'CAA', 'CAC', 'CAG', 'CAT',
+    'CCA', 'CCC', 'CCG', 'CCT',
+    'CGA', 'CGC', 'CGG', 'CGT',
+    'CTA', 'CTC', 'CTG', 'CTT',
+    
+    'GAA', 'GAC', 'GAG', 'GAT',
+    'GCA', 'GCC', 'GCG', 'GCT',
+    'GGA', 'GGC', 'GGG', 'GGT',
+    'GTA', 'GTC', 'GTG', 'GTT',
+    
+    'TAA', 'TAC', 'TAG', 'TAT',
+    'TCA', 'TCC', 'TCG', 'TCT',
+    'TGA', 'TGC', 'TGG', 'TGT',
+    'TTA', 'TTC', 'TTG', 'TTT',
+]
 STOP_CODONS = ['TAA', 'TAG', 'TGA']
 
 # Degenerate codons

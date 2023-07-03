@@ -41,3 +41,24 @@ TO_NUCLEOTIDE_ONE_LETTER_TOKEN = {
     'N': 'N',
 }
 DEGENERATE_NUCLEOTIDES = ['R', 'Y', 'S', 'W', 'K', 'M', 'B', 'D', 'H', 'V', 'N']
+COMPLEMENTARY_NUCLEOTIDES = {
+    'A': 'T',
+    'C': 'G',
+    'G': 'C',
+    'T': 'A',
+    'U': 'A',
+    'R': 'Y',
+    'Y': 'R',
+    'S': 'S',
+    'W': 'W',
+    'K': 'M',
+    'M': 'K',
+    'B': 'V',
+    'D': 'H',
+    'H': 'D',
+    'V': 'B',
+    'N': 'N',
+    'Gap': 'Gap',
+    'Other': 'Other',
+    'Mask': 'Mask',
+}
