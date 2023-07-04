@@ -1,2 +1,10 @@
-from biodatatypes.units import Nucleotide, AminoAcid, Codon
-from biodatatypes.sequence.sequence import NucleotideSequence, AminoAcidSequence, CodonSequence
+from biodatatypes.unit.types import (
+    Nucleotide, 
+    AminoAcid, 
+    Codon,
+)
+from biodatatypes.sequence.types import(
+    NucleotideSequence, 
+    AminoAcidSequence, 
+    CodonSequence,
+)

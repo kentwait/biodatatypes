@@ -1,3 +1,4 @@
+STANDARD_NUCLEOTIDES = ['A', 'C', 'G', 'T']
 FROM_NUCLEOTIDE_ONE_LETTER_TOKEN = {
     'A': 'A',
     'C': 'C',
@@ -40,7 +41,7 @@ TO_NUCLEOTIDE_ONE_LETTER_TOKEN = {
     'V': 'V',
     'N': 'N',
 }
-DEGENERATE_NUCLEOTIDES = ['R', 'Y', 'S', 'W', 'K', 'M', 'B', 'D', 'H', 'V', 'N']
+AMBIGUOUS_NUCLEOTIDES = ['R', 'Y', 'S', 'W', 'K', 'M', 'B', 'D', 'H', 'V', 'N']
 COMPLEMENTARY_NUCLEOTIDES = {
     'A': 'T',
     'C': 'G',

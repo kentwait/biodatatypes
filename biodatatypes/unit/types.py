@@ -1,110 +1,18 @@
-from typing import Any
+from typing import cast, Type
 from collections.abc import Sequence
-from enum import Enum
 
 from biodatatypes.constants.nucleotide import *
 from biodatatypes.constants.aminoacid import *
 from biodatatypes.constants.codon import *
+from biodatatypes.unit.base import (
+    NucleotideEnum, 
+    AminoAcidEnum, 
+    CodonEnum,
+)
+from biodatatypes.unit.mixins import SpecialTokenMixin
 
 
-class BioToken(Enum):
-    """Base class for all biological sequence unit tokens as Enum members.
-
-    This subclasses the Enum datatype but does not define any members.
-    This class is intended to be subclassed for each type of unit token: 
-    Nucleotide, AminoAcid, Codon. 
-    Each subclass should define its own set of tokens as class attributes. 
-    
-    Attributes
-    ----------
-    name : str
-        The name of the token. This is used to identify the token and may be also be its string representations.
-        
-        Standard tokens should be named after their string representation.
-        Special tokens like those representing a gap, mask, or other are always named 'Gap', 'Mask', and 'Other' respectively.
-        
-    value : int
-        The integer value of the token. This is used for indexing into
-        onehot vectors.
-        
-        Gap tokens are always assigned the value 0.
-        Standard tokens are always assigned the values from 1 to n.
-        Special tokens are always assigned the the highest values, and the Mask token is always assigned the highest value.
-    """
-    def __repr__(self) -> str:
-        return self.__str__()
-    
-    def __eq__(self, other: object) -> bool:
-        if isinstance(other, BioToken):
-            return self.value == other.value
-        elif isinstance(other, str):
-            return str(self) == other
-        else:
-            return False
-    
-    def __hash__(self) -> int:
-        return hash(str(self))
-    
-    def __str__(self) -> str:
-        ...
-        
-    # Factory methods
-    
-    @classmethod
-    def from_str(cls, s: str) -> 'BioToken':
-        ...
-    
-    @classmethod
-    def from_int(cls, i: int) -> 'BioToken':
-        try:
-            return cls(i)
-        except ValueError:
-            raise ValueError(f'Invalid index value for {cls.__name__}: {i}')
-    
-    @classmethod
-    def from_onehot(cls, onehot:Sequence[int]) -> 'BioToken':
-        if (len(onehot) != len(cls)) or (sum(onehot) != 1):
-            raise ValueError(f'Invalid onehot vector for {cls.__name__}: {onehot}')
-        try:
-            return cls(onehot.index(1))
-        except ValueError:
-            raise ValueError(f'Invalid onehot vector for {cls.__name__}: {onehot}')
-        
-    # Conversion methods
-    
-    def to_onehot(self) -> Sequence[int]:
-        onehot = [0] * len(self.__class__)
-        onehot[self.value] = 1
-        return onehot
-        
-    def to_int(self) -> int:
-        return self.value
-        
-    # Token type methods
-    
-    def is_standard(self) -> bool:
-        ...
-        
-    def is_mask(self) -> bool:
-        return self == self.Mask
-        
-    def is_gap(self) -> bool:
-        return self == self.Gap
-    
-    def is_other(self) -> bool:
-        return self == self.Other
-        
-    def is_special(self) -> bool:
-        return self.is_mask() or self.is_gap() or self.is_other()
-        
-    def is_any(self) -> bool:
-        ...
-        
-    def is_ambiguous(self) -> bool:
-        ...
-
-
-class Nucleotide(BioToken):
+class Nucleotide(SpecialTokenMixin, NucleotideEnum):
     """A nucleotide token.
     
     Attributes
@@ -114,13 +22,12 @@ class Nucleotide(BioToken):
     value : int
         The integer value of the token. This is used for indexing into onehot vectors.
     """
+    #region Nucleotide tokens
     A = 1
     C = 2
     G = 3
     T = 4
-    # Non-standard symbols
     U = 5
-    # Degenerate symbols
     R = 6  # A or G, purine
     Y = 7 # C or T, pyrimidine
     S = 8  # G or C, strong
@@ -132,18 +39,16 @@ class Nucleotide(BioToken):
     H = 14  # A or C or T, not G
     V = 15  # A or C or G, not T
     N = 16  # A or C or G or T, any
-    # Special tokens
     Gap = 0  # Gap, -
     Other = 17  # Other unspecified but valid character, @
     Mask = 18  # Masked, #
+    #endregion
 
-    def __str__(self) -> str:
-        return TO_NUCLEOTIDE_ONE_LETTER_TOKEN[self.name]
-
-    # Factory methods
+    #region Override methods from NuclotideEnum
     
+    # Factory methods
     @classmethod
-    def from_str(cls, s: str) -> 'Nucleotide':
+    def from_str(cls, s: str) -> 'NucleotideEnum':
         """Convert a string to a Nucleotide.
         
         Parameters
@@ -175,13 +80,10 @@ class Nucleotide(BioToken):
         Traceback (most recent call last):
         ValueError: Invalid nucleotide: X
         """
-        try:
-            return cls[FROM_NUCLEOTIDE_ONE_LETTER_TOKEN[s.upper()]]
-        except KeyError:
-            raise ValueError(f'Invalid nucleotide: {s}')
+        return super().from_str(s)
 
     @classmethod
-    def from_int(cls, i: int) -> 'Nucleotide':
+    def from_int(cls, i: int) -> 'NucleotideEnum':
         """Convert an integer to a Nucleotide.
         
         Parameters
@@ -214,7 +116,7 @@ class Nucleotide(BioToken):
         return super().from_int(i)
 
     @classmethod
-    def from_onehot(cls, onehot:Sequence[int]) -> 'Nucleotide':
+    def from_onehot(cls, onehot:Sequence[int]) -> 'NucleotideEnum':
         """Convert a onehot encoding to a Nucleotide.
         
         Parameters
@@ -246,9 +148,9 @@ class Nucleotide(BioToken):
         ValueError: Invalid onehot vector for Nucleotide: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]
         """
         return super().from_onehot(onehot)
-
-    # Conversion methods
     
+    # Conversion methods
+
     def to_onehot(self) -> Sequence[int]:
         """Convert a Nucleotide to a onehot encoding.
         
@@ -286,30 +188,8 @@ class Nucleotide(BioToken):
         16
         """
         return super().to_int()
-    
-    # Nucleotide-only conversions
-    
-    def to_complement(self) -> 'Nucleotide':
-        """Convert a Nucleotide to its complement.
-        
-        Returns
-        -------
-        Nucleotide
-            The complement of the nucleotide.
-            
-        Examples
-        --------
-        >>> Nucleotide.A.to_complement()
-        T
-        >>> Nucleotide.Gap.to_complement()
-        -
-        >>> Nucleotide.N.to_complement()
-        N
-        """
-        complement_str = COMPLEMENTARY_NUCLEOTIDES[self.name]
-        return Nucleotide[complement_str]
-    
-    # Token type methods
+
+    # Propeties
 
     def is_standard(self):
         """Return True if the nucleotide is a standard nucleotide.
@@ -330,113 +210,8 @@ class Nucleotide(BioToken):
         >>> Nucleotide.Gap.is_standard()
         False
         """
-        return self.name in ['A', 'C', 'G', 'T']
+        return super().is_standard()
 
-    def is_mask(self):
-        """Return True if the nucleotide is masked.
-        
-        Returns
-        -------
-        bool
-            True if the nucleotide is masked, False otherwise.
-        
-        See Also
-        --------
-        is_special : Checks if it is a special token
-        
-        Examples
-        --------
-        >>> Nucleotide.Mask.is_mask()
-        True
-        >>> Nucleotide.A.is_mask()
-        False
-        >>> Nucleotide.Gap.is_mask()
-        False
-        """
-        return super().is_mask()
-    
-    def is_gap(self):
-        """Return True if the nucleotide is a gap.
-        
-        Returns
-        -------
-        bool
-            True if the nucleotide is a gap, False otherwise.
-        
-        See Also
-        --------
-        is_special : Checks if it is a special token
-        
-        Examples
-        --------
-        >>> Nucleotide.Gap.is_gap()
-        True
-        >>> Nucleotide.A.is_gap()
-        False
-        >>> Nucleotide.Mask.is_gap()
-        False
-        """
-        return super().is_gap()
-    
-    def is_other(self):
-        """Return True if the nucleotide is a valid character but is not specified
-        in the enumeration.
-        
-        Returns
-        -------
-        bool
-            True if the nucleotide is an unspecified but valid character, False otherwise.
-            
-        See Also
-        --------
-        is_special : Checks if it is a special token
-        
-        Examples
-        --------
-        >>> Nucleotide.Other.is_other()
-        True
-        >>> Nucleotide.A.is_other()
-        False
-        >>> Nucleotide.N.is_other()
-        False
-        >>> Nucleotide.Gap.is_other()
-        False
-        """
-        return super().is_other()
-
-    def is_special(self):
-        """Return True if it represents a special sequence.
-        
-        Returns
-        -------
-        bool
-            True if the nucleotide token represents a gap, mask or special character.
-        
-        See Also
-        --------
-        is_masked : Checks if it is a masked token
-        is_gap : Checks if it is a gap token
-        
-        Examples
-        --------
-        >>> gap = Nucleotide.Gap
-        >>> gap.is_special()
-        True
-        >>> mask = Nucleotide.Mask
-        >>> mask.is_special()
-        True
-        >>> other = Nucleotide.Other
-        >>> other.is_special()
-        True
-        >>> a = Nucleotide.A
-        >>> a.is_special()
-        False
-        >>> n = Nucleotide.N
-        >>> n.is_special()
-        False
-        """
-        return super().is_special()
-    
     def is_any(self):
         """Return True if it represents any nucleotide.
         
@@ -448,7 +223,6 @@ class Nucleotide(BioToken):
         See Also
         --------
         is_ambiguous : Checks if it is an ambiguous token
-        is_degenerate : Checks if it is a degenerate token
         
         Examples
         --------
@@ -465,10 +239,13 @@ class Nucleotide(BioToken):
         >>> a.is_any()
         False
         """
-        return self.name == 'N'
-   
+        return super().is_any()
+    
     def is_ambiguous(self):
         """Return True if it represents an ambiguous nucleotide.
+        
+        Subclasses should override this method to check if the token represents
+        an ambiguous nucleotide.
         
         Returns
         -------
@@ -477,7 +254,7 @@ class Nucleotide(BioToken):
         
         See Also
         --------
-        is_degenerate : Checks if it is a degenerate token
+        is_any : Checks if the token represents any nucleotide
         
         Examples
         --------
@@ -492,11 +269,9 @@ class Nucleotide(BioToken):
         >>> Nucleotide['A'].is_ambiguous()
         False
         """
-        return self.name in DEGENERATE_NUCLEOTIDES
+        return super().is_ambiguous()
  
-    # Properties
-    
-    def is_purine(self):
+    def is_purine(self) -> bool:
         """Return True if the nucleotide is a purine.
         
         Returns
@@ -519,9 +294,9 @@ class Nucleotide(BioToken):
         >>> Nucleotide['Gap'].is_purine()
         False
         """
-        return self == Nucleotide.A or self == Nucleotide.G or self == Nucleotide.R
+        return super().is_purine() or self.name == 'R'
 
-    def is_pyrimidine(self):
+    def is_pyrimidine(self) -> bool:
         """Return True if the nucleotide is a pyrimidine.
         
         Returns
@@ -544,9 +319,9 @@ class Nucleotide(BioToken):
         >>> Nucleotide['Gap'].is_pyrimidine()
         False
         """
-        return self == Nucleotide.C or self == Nucleotide.T or self == Nucleotide.Y
+        return super().is_pyrimidine() or self.name == 'U' or self.name == 'Y'
 
-    def is_strong(self):
+    def is_strong(self) -> bool:
         """Return True if the nucleotide is a nucleotide involved in strong triple H-bond interaction.
         
         Returns
@@ -569,9 +344,9 @@ class Nucleotide(BioToken):
         >>> Nucleotide['Gap'].is_strong()
         False
         """
-        return self == Nucleotide.G or self == Nucleotide.C or self == Nucleotide.S
+        return super().is_strong() or self.name == 'S'
 
-    def is_weak(self):
+    def is_weak(self) -> bool:
         """Return True if the nucleotide is a nucleotide involved in weak double H-bond interaction.
         
         Returns
@@ -594,16 +369,105 @@ class Nucleotide(BioToken):
         >>> Nucleotide['Gap'].is_weak()
         False
         """
-        return self == Nucleotide.A or self == Nucleotide.T or self == Nucleotide.W
+        return super().is_weak() or self.name == 'W'
 
-    def is_amino(self):
-        return self == Nucleotide.A or self == Nucleotide.C or self == Nucleotide.M
+    def is_amino(self) -> bool:
+        return super().is_amino() or self.name == 'M'
 
-    def is_keto(self):
-        return self == Nucleotide.G or self == Nucleotide.T or self == Nucleotide.K
+    def is_keto(self) -> bool:
+        return super().is_keto() or self.name == 'K'
+    
+ 
+    #endregion
+    
+    #region Override methods from SpecialTokenMixin
+    
+    def is_mask(self) -> bool:
+        """Return True if the token is a mask token.
+        
+        Returns
+        -------
+        bool
+            True if the token is a mask token, False otherwise.
+        
+        Examples
+        --------
+        >>> Nucleotide.Mask.is_mask()
+        True
+        >>> Nucleotide.A.is_mask()
+        False
+        >>> Nucleotide.Gap.is_mask()
+        False
+        """
+        return super().is_mask()
+
+    def is_gap(self) -> bool:
+        """Return True if the token is a gap token.
+        
+        Returns
+        -------
+        bool
+            True if the token is a gap token, False otherwise.
+            
+        Examples
+        --------
+        >>> Nucleotide.Gap.is_gap()
+        True
+        >>> Nucleotide.A.is_gap()
+        False
+        >>> Nucleotide.Mask.is_gap()
+        False
+        """
+        return super().is_gap()
+    
+    def is_other(self) -> bool:
+        """Return True if the token is a valid but unspecified amino acid token.
+        
+        Returns
+        -------
+        bool
+            True if the token is a valid but unspecified amino acid token, False otherwise.
+            
+        Examples
+        --------
+        >>> Nucleotide.Other.is_other()
+        True
+        >>> Nucleotide.A.is_other()
+        False
+        >>> Nucleotide.Mask.is_other()
+        False
+        >>> Nucleotide.Gap.is_other()
+        False
+        """
+        return super().is_other()
+    
+    def is_special(self) -> bool:
+        """Return True if the token is a mask, gap, or other token.
+        
+        Returns
+        -------
+        bool
+            True if the token is a mask, gap, or other token, False otherwise.
+         
+        Examples
+        --------
+        >>> Nucleotide.Mask.is_special()
+        True
+        >>> Nucleotide.Gap.is_special()
+        True
+        >>> Nucleotide.Other.is_special()
+        True
+        >>> Nucleotide.A.is_special()
+        False
+        """
+        return super().is_special()
+    
+        # Factory methods unique to Codon
+    
+    #endregion
 
 
-class AminoAcid(BioToken):
+class AminoAcid(SpecialTokenMixin, AminoAcidEnum):
     """Amino acid tokens.
     
     Attributes
@@ -623,6 +487,7 @@ class AminoAcid(BioToken):
         Ambiguous amino acids are assigned values 23 to 26.
         Special non-amino acid tokens are assigned values 0, and 27 to 29 inclusive.
     """
+    #region Token enum
     Ala = 1
     Arg = 2
     Asn = 3
@@ -643,26 +508,24 @@ class AminoAcid(BioToken):
     Trp = 18
     Tyr = 19
     Val = 20
-    # Non-standard amino acids
-    Sec = 21  # Selenocysteine, U
-    Pyl = 22  # Pyrrolysine, O
-    # Ambiguous amino acids
+    Sec = 21
+    Pyl = 22
     Asx = 23  # Asn or Asp, B
     Glx = 24  # Gln or Glu, Z
     Xle = 25  # Leu or Ile, J
     Xaa = 26  # Unknown or Ambiguous, X
-    # Special tokens
     Gap = 0  # Gap, -
     Stop = 27 # Terminator, *
     Other = 28  # Other unspecified but valid character, @
     Mask = 29  # Masked, ?
+    #endregion
     
-    def __str__(self) -> str:
-        return NAME_TO_AMINO_ACID_ONE_LETTER_TOKEN[self.value]
+    #region Override methods from AminoAcidEnum
     
+    # Factory methods
     @classmethod
-    def from_str(cls, s: str) -> 'AminoAcid':
-        """Convert a string to an AminoAcid object.
+    def from_str(cls, s: str) -> 'AminoAcidEnum':
+        """Convert a string to an AminoAcidEnum object.
         
         Parameters
         ----------
@@ -672,8 +535,8 @@ class AminoAcid(BioToken):
 
         Returns
         -------
-        AminoAcid
-            An AminoAcid object.
+        AminoAcidEnum
+            An AminoAcidEnum object.
             
         Raises
         ------
@@ -692,15 +555,10 @@ class AminoAcid(BioToken):
         Traceback (most recent call last):
         ValueError: Invalid one-letter code: !
         """
-        if len(s) == 1:
-            return cls.from_one_letter(s)
-        elif len(s) == 3:
-            return cls.from_three_letter(s)
-        else:
-            raise ValueError(f'Invalid amino acid string: {s}')
+        return super().from_str(s)
     
     @classmethod
-    def from_int(cls, i: int) -> 'AminoAcid':
+    def from_int(cls, i: int) -> 'AminoAcidEnum':
         """Convert an integer to an AminoAcid object.
         
         Parameters
@@ -710,8 +568,8 @@ class AminoAcid(BioToken):
             
         Returns
         -------
-        AminoAcid
-            An AminoAcid object.
+        AminoAcidEnum
+            An AminoAcidEnum object.
             
         Raises
         ------
@@ -735,7 +593,7 @@ class AminoAcid(BioToken):
         return super().from_int(i)
     
     @classmethod
-    def from_onehot(cls, onehot: Sequence[int]) -> 'AminoAcid':
+    def from_onehot(cls, onehot: Sequence[int]) -> 'AminoAcidEnum':
         """Convert a onehot vector to an AminoAcid object.
         
         Parameters
@@ -745,8 +603,8 @@ class AminoAcid(BioToken):
             
         Returns
         -------
-        AminoAcid
-            An AminoAcid object.
+        AminoAcidEnum
+            An AminoAcidEnum object.
             
         Raises
         ------
@@ -766,11 +624,9 @@ class AminoAcid(BioToken):
         ValueError: Invalid onehot vector for AminoAcid: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         """
         return super().from_onehot(onehot)
-    
-    # Factory methods unique to AminoAcid
-    
+
     @classmethod
-    def from_one_letter(cls, one_letter_code: str) -> 'AminoAcid':
+    def from_one_letter(cls, one_letter_code: str) -> 'AminoAcidEnum':
         """Convert a one-letter code to an AminoAcid object.
         
         Parameters
@@ -780,8 +636,8 @@ class AminoAcid(BioToken):
         
         Returns
         -------
-        AminoAcid
-            An AminoAcid object.
+        AminoAcidEnum
+            An AminoAcidEnum object.
             
         Raises
         ------
@@ -803,14 +659,11 @@ class AminoAcid(BioToken):
         Traceback (most recent call last):
         ValueError: Invalid one-letter code: !
         """
-        try:
-            return cls[AMINO_ACID_ONE_LETTER_TOKEN_TO_NAME[one_letter_code.upper()]]
-        except KeyError:
-            raise ValueError(f'Invalid one-letter code: {one_letter_code}')
+        return super().from_one_letter(one_letter_code)
     
     @classmethod
-    def from_three_letter(cls, three_letter_code: str) -> 'AminoAcid':
-        f"""Convert a three-letter code to an AminoAcid object.
+    def from_three_letter(cls, three_letter_code: str) -> 'AminoAcidEnum':
+        """Convert a three-letter code to an AminoAcidEnum object.
         
         Parameters
         ----------
@@ -819,8 +672,8 @@ class AminoAcid(BioToken):
             
         Returns
         -------
-        AminoAcid
-            An AminoAcid object.
+        AminoAcidEnum
+            An AminoAcidEnum object.
             
         Raises
         ------
@@ -839,17 +692,13 @@ class AminoAcid(BioToken):
         -
         >>> AminoAcid.from_three_letter('XXX')
         Traceback (most recent call last):
-        ValueError: Invalid three-letter code for Amino Acid: XXX
+        ValueError: Invalid three-letter code for AminoAcid: XXX
         """
-        try:
-            return cls[AMINO_ACID_THREE_LETTER_TOKEN_TO_NAME[three_letter_code.capitalize()]]
-        except KeyError:
-            raise ValueError(f'Invalid three-letter code for {cls.__name__}: {three_letter_code}')
-    
+        return super().from_three_letter(three_letter_code)
+
     # Conversion methods
-    
     def to_onehot(self) -> Sequence[int]:
-        """Convert an AminoAcid object to a onehot vector.
+        """Convert an AminoAcidEnum object to a onehot vector.
         
         Returns
         -------
@@ -871,7 +720,7 @@ class AminoAcid(BioToken):
         return super().to_onehot()
     
     def to_int(self) -> int:
-        """Convert an AminoAcid object to an integer representation.
+        """Convert an AminoAcidEnum object to an integer representation.
         
         Returns
         -------
@@ -895,10 +744,8 @@ class AminoAcid(BioToken):
         """
         return super().to_int()
     
-    # Conversion methods unique to AminoAcid
-    
     def to_one_letter(self) -> str:
-        """Convert an AminoAcid object to a one-letter code.
+        """Convert an AminoAcidEnum object to a one-letter code.
         
         Returns
         -------
@@ -917,10 +764,10 @@ class AminoAcid(BioToken):
         >>> unknown.to_one_letter()
         'X'
         """
-        return str(self)
+        return super().to_one_letter()
     
     def to_three_letter(self) -> str:
-        """Convert an AminoAcid object to a three-letter code.
+        """Convert an AminoAcidEnum object to a three-letter code.
         
         Returns
         -------
@@ -939,10 +786,9 @@ class AminoAcid(BioToken):
         >>> unknown.to_three_letter()
         'Xaa'
         """
-        return NAME_TO_AMINO_ACID_THREE_LETTER_TOKEN[self.name]
+        return super().to_three_letter()
     
-    # Token type methods
-    
+    # Properties
     def is_standard(self) -> bool:
         """Return True if it is a standard amino acid.
             
@@ -953,79 +799,14 @@ class AminoAcid(BioToken):
             
         Examples
         --------
-        >>> AminoAcid['Ala'].is_standard()
+        >>> AminoAcid.Ala.is_standard()
         True
-        >>> AminoAcid['Sec'].is_standard()
+        >>> AminoAcid.Sec.is_standard()
         False
-        >>> AminoAcid['Xaa'].is_standard()
+        >>> AminoAcid.Xaa.is_standard()
         False
         """
-        return self.name in STANDARD_AA
-    
-    def is_mask(self) -> bool:
-        """Return True if masked.
-        
-        Returns
-        -------
-        bool
-            True if the amino acid object is masked.
-        
-        Examples
-        --------
-        >>> AminoAcid['Mask'].is_mask()
-        True
-        >>> AminoAcid['Ala'].is_mask()
-        False
-        >>> AminoAcid['Gap'].is_mask()
-        False
-        """
-        return super().is_mask()
-    
-    def is_gap(self) -> bool:
-        """Return True if it represents a gap.
-        
-        Returns
-        -------
-        bool
-            True if the amino acid token represents a gap.
-        
-        Examples
-        --------
-        >>> AminoAcid['Gap'].is_gap()
-        True
-        >>> AminoAcid['Ala'].is_gap()
-        False
-        >>> AminoAcid['Mask'].is_gap()
-        False
-        """
-        return super().is_gap()
-    
-    def is_special(self) -> bool:
-        """Return True if it represents a special sequence.
-        
-        Returns
-        -------
-        bool
-            True if the amino acid token represents a special sequence (Mask, Ter, Gap, Special).
-            
-        Examples
-        --------
-        >>> AminoAcid['Mask'].is_special()
-        True
-        >>> AminoAcid['Gap'].is_special()
-        True
-        >>> AminoAcid['Stop'].is_special()
-        True
-        >>> AminoAcid['Other'].is_special()
-        True
-        >>> AminoAcid['Ala'].is_special()
-        False
-        >>> AminoAcid['Xaa'].is_special()
-        False
-        >>> AminoAcid['Sec'].is_special()
-        False
-        """
-        return super().is_special() or self.is_stop()
+        return super().is_standard()
     
     def is_any(self):
         """Return True if it represents any amino acid.
@@ -1037,16 +818,16 @@ class AminoAcid(BioToken):
         
         Examples
         --------
-        >>> AminoAcid['Xaa'].is_any()
+        >>> AminoAcid.Xaa.is_any()
         True
-        >>> AminoAcid['Ala'].is_any()
+        >>> AminoAcid.Ala.is_any()
         False
-        >>> AminoAcid['Gap'].is_any()
+        >>> AminoAcid.Gap.is_any()
         False
-        >>> AminoAcid['Mask'].is_any()
+        >>> AminoAcid.Mask.is_any()
         False
         """
-        return self == self.Xaa
+        return super().is_any()
     
     def is_ambiguous(self) -> bool:
         """Return True if it represents an ambiguous amino acid token.
@@ -1058,46 +839,25 @@ class AminoAcid(BioToken):
             
         Examples
         --------
-        >>> AminoAcid['Asx'].is_ambiguous()
+        >>> AminoAcid.Asx.is_ambiguous()
         True
-        >>> AminoAcid['Glx'].is_ambiguous()
+        >>> AminoAcid.Glx.is_ambiguous()
         True
-        >>> AminoAcid['Xle'].is_ambiguous()
+        >>> AminoAcid.Xle.is_ambiguous()
         True
-        >>> AminoAcid['Xaa'].is_ambiguous()
+        >>> AminoAcid.Xaa.is_ambiguous()
         True
-        >>> AminoAcid['Ala'].is_ambiguous()
+        >>> AminoAcid.Ala.is_ambiguous()
         False
-        >>> AminoAcid['Gap'].is_ambiguous()
+        >>> AminoAcid.Gap.is_ambiguous()
         False
         """
         return (
             self.is_any() or 
-            self == self.Asx or 
-            self == self.Glx or 
-            self == self.Xle)
-        
-    # Token type methods unique to AminoAcid
+            self.name == 'Asx' or 
+            self.name == 'Glx' or 
+            self.name == 'Xle')
     
-    def is_nonstandard(self) -> bool:
-        """Return True if the amino acid is a nonstandard amino acid.
-        
-        Returns
-        -------
-        bool
-            True if the amino acid is a nonstandard amino acid selenocysteine or pyrrolysine.
-            
-        Examples
-        --------
-        >>> AminoAcid['Ala'].is_nonstandard()
-        False
-        >>> AminoAcid['Sec'].is_nonstandard()
-        True
-        >>> AminoAcid['Xaa'].is_nonstandard()
-        False
-        """
-        return self.name == 'Sec' or self.name == 'Pyl'
-        
     def is_stop(self) -> bool:
         """Return True if it represents a terminator sequence.
         
@@ -1108,16 +868,14 @@ class AminoAcid(BioToken):
             
         Examples
         --------
-        >>> AminoAcid['Stop'].is_stop()
+        >>> AminoAcid.Stop.is_stop()
         True
-        >>> AminoAcid['Ala'].is_stop()
+        >>> AminoAcid.Ala.is_stop()
         False
-        >>> AminoAcid['Gap'].is_stop()
+        >>> AminoAcid.Gap.is_stop()
         False
         """
-        return self == self.Stop
-
-    # Properties
+        return super().is_stop()
     
     def is_polar(self) -> bool:
         """Return True if the amino acid identity is known and is polar.
@@ -1129,15 +887,15 @@ class AminoAcid(BioToken):
             
         Examples
         --------
-        >>> AminoAcid['Arg'].is_polar()
+        >>> AminoAcid.Arg.is_polar()
         True
-        >>> AminoAcid['Ala'].is_polar()
+        >>> AminoAcid.Ala.is_polar()
         False
-        >>> AminoAcid['Xaa'].is_polar()
+        >>> AminoAcid.Xaa.is_polar()
         False
         """
-        return self.name in POLAR_AA
-
+        return super().is_polar()
+    
     def is_nonpolar(self) -> bool:
         """Return True if the amino acid identity is known and is nonpolar.
         
@@ -1148,14 +906,14 @@ class AminoAcid(BioToken):
             
         Examples
         --------
-        >>> AminoAcid['Ala'].is_nonpolar()
+        >>> AminoAcid.Ala.is_nonpolar()
         True
-        >>> AminoAcid['Arg'].is_nonpolar()
+        >>> AminoAcid.Arg.is_nonpolar()
         False
-        >>> AminoAcid['Xaa'].is_nonpolar()
+        >>> AminoAcid.Xaa.is_nonpolar()
         False
         """
-        return self.name in NONPOLAR_AA
+        return super().is_nonpolar()
     
     def is_acidic(self) -> bool:
         """Return True if the amino acid identity is known and is acidic.
@@ -1167,14 +925,14 @@ class AminoAcid(BioToken):
             
         Examples
         --------
-        >>> AminoAcid['Asp'].is_acidic()
+        >>> AminoAcid.Asp.is_acidic()
         True
-        >>> AminoAcid['Ala'].is_acidic()
+        >>> AminoAcid.Ala.is_acidic()
         False
-        >>> AminoAcid['Xaa'].is_acidic()
+        >>> AminoAcid.Xaa.is_acidic()
         False
         """
-        return self.name in ACIDIC_AA
+        return super().is_acidic()
     
     def is_basic(self) -> bool:
         """Return True if the amino acid identity is known and is basic.
@@ -1186,14 +944,14 @@ class AminoAcid(BioToken):
         
         Examples
         --------
-        >>> AminoAcid['Arg'].is_basic()
+        >>> AminoAcid.Arg.is_basic()
         True
-        >>> AminoAcid['Ala'].is_basic()
+        >>> AminoAcid.Ala.is_basic()
         False
-        >>> AminoAcid['Xaa'].is_basic()
+        >>> AminoAcid.Xaa.is_basic()
         False
         """
-        return self.name in BASIC_AA
+        return super().is_basic()
     
     def is_aromatic(self) -> bool:
         """Return True if the amino acid identity is known and is aromatic.
@@ -1205,14 +963,14 @@ class AminoAcid(BioToken):
             
         Examples
         --------
-        >>> AminoAcid['Phe'].is_aromatic()
+        >>> AminoAcid.Phe.is_aromatic()
         True
-        >>> AminoAcid['Ala'].is_aromatic()
+        >>> AminoAcid.Ala.is_aromatic()
         False
-        >>> AminoAcid['Xaa'].is_aromatic()
+        >>> AminoAcid.Xaa.is_aromatic()
         False
         """
-        return self.name in AROMATIC_AA
+        return super().is_aromatic()
     
     def is_hydrophobic(self) -> bool:
         """Return True if the amino acid identity is known and is hydrophobic.
@@ -1224,16 +982,14 @@ class AminoAcid(BioToken):
             
         Examples
         --------
-        >>> AminoAcid['Ala'].is_hydrophobic()
+        >>> AminoAcid.Ala.is_hydrophobic()
         True
-        >>> AminoAcid['Gly'].is_hydrophobic()
+        >>> AminoAcid.Gly.is_hydrophobic()
         False
-        >>> AminoAcid['Xaa'].is_hydrophobic()
+        >>> AminoAcid.Xaa.is_hydrophobic()
         False
         """
-        return self.name in HYDROPHOBIC_AA
-
-    # Contains particular elements/functional groups
+        return super().is_hydrophobic()
     
     def has_sulfur(self) -> bool:
         """Return True if the amino acid identity is known and contains sulfur.
@@ -1245,16 +1001,16 @@ class AminoAcid(BioToken):
             
         Examples
         --------
-        >>> AminoAcid['Cys'].has_sulfur()
+        >>> AminoAcid.Cys.has_sulfur()
         True
-        >>> AminoAcid['Met'].has_sulfur()
+        >>> AminoAcid.Met.has_sulfur()
         True
-        >>> AminoAcid['Ala'].has_sulfur()
+        >>> AminoAcid.Ala.has_sulfur()
         False
-        >>> AminoAcid['Xaa'].has_sulfur()
+        >>> AminoAcid.Xaa.has_sulfur()
         False
         """
-        return self.name in SULFUR_AA
+        return super().has_sulfur()
     
     def has_amide(self) -> bool:
         """Return True if the amino acid identity is known and contains an amide.
@@ -1266,16 +1022,16 @@ class AminoAcid(BioToken):
             
         Examples
         --------
-        >>> AminoAcid['Asn'].has_amide()
+        >>> AminoAcid.Asn.has_amide()
         True
-        >>> AminoAcid['Gln'].has_amide()
+        >>> AminoAcid.Gln.has_amide()
         True
-        >>> AminoAcid['Ala'].has_amide()
+        >>> AminoAcid.Ala.has_amide()
         False
-        >>> AminoAcid['Xaa'].has_amide()
+        >>> AminoAcid.Xaa.has_amide()
         False
         """
-        return self.name in AMIDE_AA
+        return super().has_amide()
     
     def has_hydroxyl(self) -> bool:
         """Return True if the amino acid identity is known and contains a hydroxyl.
@@ -1287,21 +1043,110 @@ class AminoAcid(BioToken):
             
         Examples
         --------
-        >>> AminoAcid['Ser'].has_hydroxyl()
+        >>> AminoAcid.Ser.has_hydroxyl()
         True
-        >>> AminoAcid['Thr'].has_hydroxyl()
+        >>> AminoAcid.Thr.has_hydroxyl()
         True
-        >>> AminoAcid['Tyr'].has_hydroxyl()
+        >>> AminoAcid.Tyr.has_hydroxyl()
         True
-        >>> AminoAcid['Ala'].has_hydroxyl()
+        >>> AminoAcid.Ala.has_hydroxyl()
         False
-        >>> AminoAcid['Xaa'].has_hydroxyl()
+        >>> AminoAcid.Xaa.has_hydroxyl()
         False
         """
-        return self.name in HYDROXYL_AA
+        return super().has_hydroxyl()
+    
+    #endregion
+    
+    #region Override methods from SpecialTokenMixin
+    def is_mask(self) -> bool:
+        """Return True if the token is a mask token.
+        
+        Returns
+        -------
+        bool
+            True if the token is a mask token, False otherwise.
+        
+        Examples
+        --------
+        >>> AminoAcid.Mask.is_mask()
+        True
+        >>> AminoAcid.Ala.is_mask()
+        False
+        >>> AminoAcid.Gap.is_mask()
+        False
+        """
+        return super().is_mask()
+
+    def is_gap(self) -> bool:
+        """Return True if the token is a gap token.
+        
+        Returns
+        -------
+        bool
+            True if the token is a gap token, False otherwise.
+            
+        Examples
+        --------
+        >>> AminoAcid.Gap.is_gap()
+        True
+        >>> AminoAcid.Ala.is_gap()
+        False
+        >>> AminoAcid.Mask.is_gap()
+        False
+        """
+        return super().is_gap()
+    
+    def is_other(self) -> bool:
+        """Return True if the token is a valid but unspecified amino acid token.
+        
+        Returns
+        -------
+        bool
+            True if the token is a valid but unspecified amino acid token, False otherwise.
+            
+        Examples
+        --------
+        >>> AminoAcid.Other.is_other()
+        True
+        >>> AminoAcid.Ala.is_other()
+        False
+        >>> AminoAcid.Mask.is_other()
+        False
+        >>> AminoAcid.Gap.is_other()
+        False
+        """
+        return super().is_other()
+    
+    def is_special(self) -> bool:
+        """Return True if the token is a mask, gap, or other token.
+        
+        Returns
+        -------
+        bool
+            True if the token is a mask, gap, or other token, False otherwise.
+         
+        Examples
+        --------
+        >>> AminoAcid.Mask.is_special()
+        True
+        >>> AminoAcid.Gap.is_special()
+        True
+        >>> AminoAcid.Other.is_special()
+        True
+        >>> AminoAcid.Ala.is_special()
+        False
+        >>> AminoAcid.Stop.is_special()
+        False
+        """
+        return super().is_special()
+    
+        # Factory methods unique to Codon
+    
+    #endregion
 
 
-class Codon(BioToken):
+class Codon(SpecialTokenMixin, CodonEnum):
     """A codon token.
     
     Attributes
@@ -1316,6 +1161,7 @@ class Codon(BioToken):
         Ambiguous codon NNN is assigned value 65.
         Special tokens 'Gap', 'Other', and 'Mask' are assigned values 0, 66, and 67, respectively.
     """
+    #region Token enum
     AAA = 1
     AAC = 2
     AAG = 3
@@ -1386,14 +1232,13 @@ class Codon(BioToken):
     Gap = 0
     Other = 66
     Mask = 67
-    
-    def __str__(self) -> str:
-        return NAME_TO_TRIPLET_TOKEN[self.name]
+    #endregion
+
+    #region Override methods from CodonEnum
     
     # Factory methods
-    
     @classmethod
-    def from_str(cls, s: str) -> 'Codon':
+    def from_str(cls, s: str) -> 'CodonEnum':
         """Convert a string to a Codon object.
         
         Parameters
@@ -1428,18 +1273,10 @@ class Codon(BioToken):
         Traceback (most recent call last):
         ValueError: Invalid codon string: A-A
         """
-        if len(s) != 3:
-            raise ValueError(f'Invalid string length: {len(s)} ({s})')
-        try:
-            return cls[TRIPLET_TOKEN_TO_NAME[s.upper()]]
-        except KeyError:
-            try:
-                return cls[TRIPLET_TOKEN_TO_NAME[s.capitalize()]]
-            except KeyError:
-                raise ValueError(f'Invalid codon string: {s}')
+        return super().from_str(s)
 
     @classmethod
-    def from_int(cls, i: int) -> 'Codon':
+    def from_int(cls, i: int) -> 'CodonEnum':
         """Convert an integer to a Codon object.
         
         Parameters
@@ -1456,11 +1293,23 @@ class Codon(BioToken):
         ------
         ValueError
             If the integer is not a valid codon index.
+            
+        Examples
+        --------
+        >>> Codon.from_int(1)
+        AAA
+        >>> Codon.from_int(64)
+        TTT
+        >>> Codon.from_int(0)
+        ---
+        >>> Codon.from_int(68)
+        Traceback (most recent call last):
+        ValueError: Invalid index value for Codon: 68
         """
-        return super().from_int(i)
+        return cast('CodonEnum', super().from_int(i))
 
     @classmethod
-    def from_onehot(cls, onehot: Sequence[int]) -> 'Codon':
+    def from_onehot(cls, onehot: Sequence[int]) -> 'CodonEnum':
         """Convert a onehot vector to a Codon object.
         
         Parameters
@@ -1478,12 +1327,10 @@ class Codon(BioToken):
         ValueError
             If the one-hot vector is invalid.
         """
-        return super().from_onehot(onehot)
+        return cast('CodonEnum', super().from_onehot(onehot))
 
-    # Factory methods unique to Codon
-        
     @classmethod
-    def from_nucleotides(cls, seq: Sequence[Nucleotide]) -> 'Codon':
+    def from_nucleotides(cls, seq: Sequence[NucleotideEnum]) -> 'CodonEnum':
         """Convert a sequence of nucleotides to a codon.
         
         Parameters
@@ -1513,19 +1360,15 @@ class Codon(BioToken):
         ###
         >>> Codon.from_nucleotides([Nucleotide.A, Nucleotide.A])
         Traceback (most recent call last):
-        ValueError: Invalid nucleotide sequence: [A, A]
+        ValueError: Invalid nucleotide sequence triplet: [A, A]
         >>> Codon.from_nucleotides([Nucleotide.A, Nucleotide.Gap, Nucleotide.A])
         Traceback (most recent call last):
-        ValueError: Invalid nucleotide sequence: [A, -, A]
+        ValueError: Invalid nucleotide sequence triplet: [A, -, A]
         """
-        try:
-            str_triplet = ''.join([str(n) for n in seq])
-            return cls.from_str(str_triplet)
-        except ValueError:
-            raise ValueError(f'Invalid nucleotide sequence: {seq}')
-
+        return super().from_nucleotides(seq)
+    
     @classmethod
-    def from_nucleotide_onehot(cls, onehot: Sequence[Sequence[int]]) -> 'Codon':
+    def from_nucleotide_onehot(cls, onehot: Sequence[Sequence[int]]) -> 'CodonEnum':
         """Convert sequence of Nucleotide onehot vectors to a Codon object.
         
         Parameters
@@ -1543,15 +1386,10 @@ class Codon(BioToken):
         ValueError
             If the one-hot vector is invalid.
         """
-        if len(onehot) != 3:
-            raise ValueError(f'Invalid number of onehot vectors: {onehot}')
-        try:
-            return cls.from_nucleotides([Nucleotide.from_onehot(onehot[i]) for i in range(3)])
-        except ValueError:
-            raise ValueError(f'Invalid one-hot value for {cls.__name__}: {onehot}')
+        return super().from_nucleotide_onehot(onehot)
 
     @classmethod
-    def start_codon(cls) -> 'Codon':
+    def start_codon(cls) -> 'CodonEnum':
         """Return the start codon.
         
         Returns
@@ -1564,33 +1402,18 @@ class Codon(BioToken):
         >>> Codon.start_codon()
         ATG
         """
-        return cls.ATG
-
+        return super().start_codon()
+    
     # Conversion methods
+    @property
+    def nucleotide_class(self) -> Type['NucleotideEnum']:
+        return Nucleotide
     
-    def to_onehot(self) -> Sequence[int]:
-        """Convert the codon to a one-hot vector.
-        
-        Returns
-        -------
-        Sequence[int]
-            The one-hot vector.
-        """
-        return super().to_onehot()
+    @property
+    def aminoacid_class(self) -> Type['AminoAcidEnum']:
+        return AminoAcid
     
-    def to_int(self) -> int:
-        """Convert the codon to an integer representation.
-        
-        Returns
-        -------
-        int
-            The integer.
-        """
-        return super().to_int()
-    
-    # Conversion methods unique to Codon
-    
-    def to_nucleotides(self) -> Sequence[Nucleotide]:
+    def to_nucleotides(self) -> Sequence[NucleotideEnum]:
         """Convert the codon to a sequence of nucleotides.
         
         Returns
@@ -1609,9 +1432,9 @@ class Codon(BioToken):
         >>> Codon.Mask.to_nucleotides()
         [#, #, #]
         """
-        return [Nucleotide.from_str(n) for n in str(self)]
+        return super().to_nucleotides()
     
-    def to_anticodon(self) -> 'Codon':
+    def to_anticodon(self) -> 'CodonEnum':
         """Return the anticodon of the codon.
         
         Returns
@@ -1630,13 +1453,36 @@ class Codon(BioToken):
         >>> Codon.Mask.to_anticodon()
         ###
         """
-        if self.is_special():
-            return self.__class__(self.value)
-        anticodn_str = ''.join([COMPLEMENTARY_NUCLEOTIDES[n] for n in str(self)])
-        return self.__class__[anticodn_str]
-        
-    # Token type methods
+        return super().to_anticodon()
     
+    def translate(self) -> AminoAcidEnum:
+        """Translate the codon to an amino acid.
+        
+        Returns
+        -------
+        AminoAcid
+            The amino acid corresponding to the codon.
+            
+        Raises
+        ------
+        ValueError
+            If the codon is not a valid codon.
+            
+        Examples
+        --------
+        >>> Codon.ATG.translate()
+        M
+        >>> Codon.AAA.translate()
+        K
+        >>> Codon.TAG.translate()
+        *
+        >>> Codon.Gap.translate()
+        -
+        """
+        return super().translate()
+    
+    # Properties
+        
     def is_standard(self) -> bool:
         """Return True if the codon is one of the 64 standard codon.
         
@@ -1658,8 +1504,169 @@ class Codon(BioToken):
         >>> Codon.Mask.is_standard()
         False
         """
-        return self.name in STANDARD_CODONS
+        return super().is_standard()
 
+    def is_any(self) -> bool:
+        """Return True if the codon is NNN.
+        
+        Returns
+        -------
+        bool
+            True if the codon is NNN, False otherwise.
+            
+        Examples
+        --------
+        >>> Codon.NNN.is_any()
+        True
+        >>> Codon.Gap.is_any()
+        False
+        >>> Codon.Mask.is_any()
+        False
+        >>> Codon.AAA.is_any()
+        False
+        """
+        return super().is_any()
+    
+    def is_ambiguous(self) -> bool:
+        """Return True if the codon is ambiguous.
+        
+        Returns
+        -------
+        bool
+            True if the codon is ambiguous, False otherwise.
+            
+        Examples
+        --------
+        >>> Codon.NNN.is_ambiguous()
+        True
+        >>> Codon.Gap.is_ambiguous()
+        False
+        >>> Codon.Mask.is_ambiguous()
+        False
+        >>> Codon.AAA.is_ambiguous()
+        False
+        """
+        return super().is_ambiguous()
+    
+    def is_start_codon(self) -> bool:
+        """Return True if the codon is the start codon.
+        
+        Returns
+        -------
+        bool
+            True if the codon is the start codon, False otherwise.
+            
+        Examples
+        --------
+        >>> Codon.ATG.is_start_codon()
+        True
+        >>> Codon.AAA.is_start_codon()
+        False
+        >>> Codon.Mask.is_start_codon()
+        False
+        """
+        return super().is_start_codon()
+    
+    def is_stop_codon(self) -> bool:
+        """Return True if the codon is a stop codon.
+
+        Returns
+        -------
+        bool
+            True if the codon is a stop codon, False otherwise.
+        
+        Examples
+        --------
+        >>> Codon.TAG.is_stop_codon()
+        True
+        >>> Codon.TAA.is_stop_codon()
+        True
+        >>> Codon.TGA.is_stop_codon()
+        True
+        >>> Codon.ATG.is_stop_codon()
+        False
+        >>> Codon.AAA.is_stop_codon()
+        False
+        >>> Codon.Mask.is_stop_codon()
+        False
+        """
+        return super().is_stop_codon()
+    
+    def is_twofold_degenerate(self) -> bool:
+        """Return True if the codon is twofold degenerate.
+        
+        Returns
+        -------
+        bool
+            True if the codon is twofold degenerate, False otherwise.
+        
+        Examples
+        --------
+        >>> Codon.AAA.is_twofold_degenerate()  # other codon is AAG
+        True
+        >>> Codon.ATG.is_twofold_degenerate()  # Met is has no degenerate sites
+        False
+        >>> Codon.TAG.is_twofold_degenerate()
+        False
+        """
+        return super().is_twofold_degenerate()
+
+    def is_threefold_degenerate(self) -> bool:
+        """Return True if the codon is threefold degenerate.
+        
+        Returns
+        -------
+        bool 
+            True if the codon is threefold degenerate, False otherwise.
+            
+        Examples
+        --------
+        >>> Codon.ATA.is_threefold_degenerate()  # Ile
+        True
+        >>> Codon.TAG.is_threefold_degenerate()  # Stop
+        False
+        >>> Codon.AAA.is_threefold_degenerate()
+        False
+        """
+        return super().is_threefold_degenerate()
+
+    def is_fourfold_degenerate(self) -> bool:
+        """Return True if the codon is fourfold degenerate.
+        
+        Returns
+        -------
+        bool
+            True if the codon is fourfold degenerate, False otherwise.
+            
+        Examples
+        --------
+        >>> Codon.GTA.is_fourfold_degenerate()  # Val
+        True
+        >>> Codon.TTT.is_fourfold_degenerate()  # Phe
+        False
+        """
+        return super().is_fourfold_degenerate()
+    
+    def is_sixfold_degenerate(self) -> bool:
+        """Return True if the codon is sixfold degenerate.
+        
+        Returns
+        -------
+        bool
+            True if the codon is sixfold degenerate, False otherwise.
+            
+        Examples
+        --------
+        >>> Codon.CGA.is_sixfold_degenerate()  # Arg
+        True
+        >>> Codon.TTT.is_sixfold_degenerate()  # Phe
+        False
+        """
+        return super().is_sixfold_degenerate()
+    
+    #endregion
+    
+    #region Override methods from SpecialTokenMixin
     def is_mask(self) -> bool:
         """Return True if the codon is a mask codon.
         
@@ -1754,195 +1761,6 @@ class Codon(BioToken):
         """
         return super().is_special()
     
-    def is_any(self) -> bool:
-        """Return True if the codon is NNN.
-        
-        Returns
-        -------
-        bool
-            True if the codon is NNN, False otherwise.
-            
-        Examples
-        --------
-        >>> Codon.NNN.is_any()
-        True
-        >>> Codon.Gap.is_any()
-        False
-        >>> Codon.Mask.is_any()
-        False
-        >>> Codon.AAA.is_any()
-        False
-        """
-        return self.name == 'NNN'
-    
-    def is_ambiguous(self) -> bool:
-        """Return True if the codon is ambiguous.
-        
-        Returns
-        -------
-        bool
-            True if the codon is ambiguous, False otherwise.
-            
-        Examples
-        --------
-        >>> Codon.NNN.is_ambiguous()
-        True
-        >>> Codon.Gap.is_ambiguous()
-        False
-        >>> Codon.Mask.is_ambiguous()
-        False
-        >>> Codon.AAA.is_ambiguous()
-        False
-        """
-        return self.is_any()
-    
-    # Codon-specific token type methods
-        
-    def is_start_codon(self) -> bool:
-        """Return True if the codon is the start codon.
-        
-        Returns
-        -------
-        bool
-            True if the codon is the start codon, False otherwise.
-            
-        Examples
-        --------
-        >>> Codon.ATG.is_start_codon()
-        True
-        >>> Codon.AAA.is_start_codon()
-        False
-        >>> Codon.Mask.is_start_codon()
-        False
-        """
-        return self.name == 'ATG'
-    
-    def is_stop_codon(self) -> bool:
-        """Return True if the codon is a stop codon.
+        # Factory methods unique to Codon
 
-        Returns
-        -------
-        bool
-            True if the codon is a stop codon, False otherwise.
-        
-        Examples
-        --------
-        >>> Codon.TAG.is_stop_codon()
-        True
-        >>> Codon.TAA.is_stop_codon()
-        True
-        >>> Codon.TGA.is_stop_codon()
-        True
-        >>> Codon.ATG.is_stop_codon()
-        False
-        >>> Codon.AAA.is_stop_codon()
-        False
-        >>> Codon.Mask.is_stop_codon()
-        False
-        """
-        return self.name in STOP_CODONS
-
-    # Properties
-    
-    def is_twofold_degenerate(self) -> bool:
-        """Return True if the codon is twofold degenerate.
-        
-        Returns
-        -------
-        bool
-            True if the codon is twofold degenerate, False otherwise.
-        
-        Examples
-        --------
-        >>> Codon.AAA.is_twofold_degenerate()  # other codon is AAG
-        True
-        >>> Codon.ATG.is_twofold_degenerate()  # Met is has no degenerate sites
-        False
-        >>> Codon.TAG.is_twofold_degenerate()
-        False
-        """
-        return self.name in TWOFOLD_DEGENERATE_CODONS
-    
-    def is_threefold_degenerate(self) -> bool:
-        """Return True if the codon is threefold degenerate.
-        
-        Returns
-        -------
-        bool 
-            True if the codon is threefold degenerate, False otherwise.
-            
-        Examples
-        --------
-        >>> Codon.ATA.is_threefold_degenerate()  # Ile
-        True
-        >>> Codon.TAG.is_threefold_degenerate()  # Stop
-        False
-        >>> Codon.AAA.is_threefold_degenerate()
-        False
-        """
-        return self.name in THREEFOLD_DEGENERATE_CODONS
-    
-    def is_fourfold_degenerate(self) -> bool:
-        """Return True if the codon is fourfold degenerate.
-        
-        Returns
-        -------
-        bool
-            True if the codon is fourfold degenerate, False otherwise.
-            
-        Examples
-        --------
-        >>> Codon.GTA.is_fourfold_degenerate()  # Val
-        True
-        >>> Codon.TTT.is_fourfold_degenerate()  # Phe
-        False
-        """
-        return self.name in FOURFOLD_DEGENERATE_CODONS
-
-    def is_sixfold_degenerate(self) -> bool:
-        """Return True if the codon is sixfold degenerate.
-        
-        Returns
-        -------
-        bool
-            True if the codon is sixfold degenerate, False otherwise.
-            
-        Examples
-        --------
-        >>> Codon.CGA.is_sixfold_degenerate()  # Arg
-        True
-        >>> Codon.TTT.is_sixfold_degenerate()  # Phe
-        False
-        """
-        return self.name in SIXFOLD_DEGENERATE_CODONS
-
-    def translate(self) -> AminoAcid:
-        """Translate the codon to an amino acid.
-        
-        Returns
-        -------
-        AminoAcid
-            The amino acid corresponding to the codon.
-            
-        Raises
-        ------
-        ValueError
-            If the codon is not a valid codon.
-            
-        Examples
-        --------
-        >>> Codon.ATG.translate()
-        M
-        >>> Codon.AAA.translate()
-        K
-        >>> Codon.TAG.translate()
-        *
-        >>> Codon.Gap.translate()
-        -
-        """
-        if self.is_stop_codon():
-            return AminoAcid.Stop
-        try:
-            return AminoAcid[TRANSLATION_TABLE[self.name]]
-        except KeyError:
-            raise ValueError(f'Cannot be translated: {self}')
+    #endregion
