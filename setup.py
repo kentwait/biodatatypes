@@ -1,11 +1,12 @@
 from setuptools import setup, find_packages
 
+
 long_desc = open('README.md').read()
 required = []
 
 setup(
     name='biodatatypes',
-    version='0.1.1',
+    version='0.2.1',
     author='Kent Kawashima',
     author_email='kentkawashima@gmail.com',
     license='MIT',
